@@ -58,6 +58,32 @@ export default function DomainsPage() {
     }
   }
 
+  async function remove(s: Site) {
+    const records = s.counts?.consentRecords ?? 0;
+    if (
+      !confirm(
+        `Permanently delete "${s.name}"?\n\n` +
+          `This erases the domain and ALL its data — purposes, notice history` +
+          (records ? `, and ${records.toLocaleString("en-IN")} consent record(s)` : "") +
+          `. This cannot be undone.\n\n` +
+          `If you only want to stop the widget and hide it, use Archive instead.`,
+      )
+    )
+      return;
+    setError(null);
+    try {
+      await api.del(`/api/admin/sites/${s.id}?purge=1`);
+      // If the selected domain was deleted, fall back to another one.
+      if (s.id === current.id) {
+        const next = sites.find((x) => x.id !== s.id);
+        if (next) selectSite(next.id);
+      }
+      await reloadSites();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   async function reactivate(id: string) {
     setError(null);
     try {
@@ -156,8 +182,11 @@ export default function DomainsPage() {
                     Switch to
                   </Button>
                 )}
-                <Button variant="danger" onClick={() => archive(s.id)}>
+                <Button variant="secondary" onClick={() => archive(s.id)}>
                   Archive
+                </Button>
+                <Button variant="danger" onClick={() => remove(s)}>
+                  Delete
                 </Button>
               </div>
             </div>
@@ -196,9 +225,14 @@ export default function DomainsPage() {
             {archived.map((s) => (
               <Card key={s.id} className="flex items-center justify-between opacity-70">
                 <span className="font-medium text-slate-700">{s.name}</span>
-                <Button variant="secondary" onClick={() => reactivate(s.id)}>
-                  Reactivate
-                </Button>
+                <div className="flex flex-none gap-2">
+                  <Button variant="secondary" onClick={() => reactivate(s.id)}>
+                    Reactivate
+                  </Button>
+                  <Button variant="danger" onClick={() => remove(s)}>
+                    Delete
+                  </Button>
+                </div>
               </Card>
             ))}
           </>

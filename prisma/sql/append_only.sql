@@ -10,6 +10,15 @@
 CREATE OR REPLACE FUNCTION dpdp_block_mutation()
 RETURNS trigger AS $$
 BEGIN
+  -- UPDATEs are never permitted (no tampering with recorded consent).
+  -- DELETEs are allowed only inside an explicit domain-purge transaction that
+  -- opts in via set_config('dpdp.allow_purge','on',true) — this is how a whole
+  -- domain (and its ledger) is erased on the owner's request. Any stray delete
+  -- outside that flow stays blocked.
+  IF TG_OP = 'DELETE'
+     AND current_setting('dpdp.allow_purge', true) = 'on' THEN
+    RETURN OLD;
+  END IF;
   RAISE EXCEPTION
     'Table % is append-only: % is not permitted (DPDP consent ledger integrity)',
     TG_TABLE_NAME, TG_OP;
