@@ -69,12 +69,24 @@ export async function createSubscription(tier: PaidTier): Promise<{
   subscriptionId: string;
   shortUrl?: string;
 }> {
-  const sub = await razorpay().subscriptions.create({
+  const rp = razorpay();
+  const sub = await rp.subscriptions.create({
     plan_id: planIdForTier(tier),
     total_count: 12, // 12 billing cycles
     customer_notify: 1,
   });
-  return { subscriptionId: sub.id, shortUrl: (sub as { short_url?: string }).short_url };
+  // Razorpay generates the hosted-checkout short_url asynchronously, so it's
+  // often absent from the create response. Re-fetch once to pick it up.
+  let shortUrl = (sub as { short_url?: string }).short_url;
+  if (!shortUrl) {
+    try {
+      const fetched = await rp.subscriptions.fetch(sub.id);
+      shortUrl = (fetched as { short_url?: string }).short_url;
+    } catch {
+      /* fall through — caller handles a missing URL */
+    }
+  }
+  return { subscriptionId: sub.id, shortUrl };
 }
 
 /** Verify a Razorpay webhook signature. */
