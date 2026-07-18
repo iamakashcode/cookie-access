@@ -1,0 +1,336 @@
+// DPDP Act Compliance SaaS — Prisma schema
+//
+// Model:
+//  - Tenant = the ACCOUNT (business + team logins). One account has many Sites.
+//  - Site   = a DOMAIN / website. Each has its OWN widget apiKey, purposes,
+//             notice, consent ledger, rights requests, breach log, and plan.
+//  - All per-domain data is scoped by siteId.
+//
+// Design notes:
+//  - PII (DataPrincipal identifier, DPRRequest details) is stored ENCRYPTED
+//    at the application layer (AES-256-GCM). A blind index (HMAC) column
+//    enables equality lookups without decrypting.
+//  - ConsentRecord and NoticeVersion are APPEND-ONLY. A DB trigger blocks
+//    UPDATE/DELETE on consent_records so the ledger holds up as evidence.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum PlanTier {
+  free
+  starter
+  growth
+}
+
+enum EntityStatus {
+  active
+  suspended
+}
+
+enum AdminRole {
+  owner
+  staff
+}
+
+enum IdentifierType {
+  email
+  phone
+  anon
+}
+
+enum ConsentAction {
+  granted
+  withdrawn
+}
+
+enum ConsentMethod {
+  widget
+  api
+}
+
+enum DprType {
+  access
+  correction
+  erasure
+  grievance
+  nomination
+}
+
+enum DprStatus {
+  open
+  in_progress
+  resolved
+}
+
+enum BreachStatus {
+  open
+  reported
+  closed
+}
+
+enum ActorType {
+  admin
+  system
+}
+
+// ---------------------------------------------------------------------------
+// Account (Tenant) + team logins
+// ---------------------------------------------------------------------------
+
+model Tenant {
+  id           String       @id @default(cuid())
+  businessName String
+  contactEmail String
+  status       EntityStatus @default(active)
+  createdAt    DateTime     @default(now())
+
+  admins    AdminUser[]
+  sites     Site[]
+  auditLogs AuditLog[]
+
+  @@map("tenants")
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  tenantId     String
+  email        String
+  passwordHash String
+  role         AdminRole @default(owner)
+  createdAt    DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("admin_users")
+}
+
+// ---------------------------------------------------------------------------
+// Site (Domain) — the unit everything per-website hangs off of
+// ---------------------------------------------------------------------------
+
+model Site {
+  id       String       @id @default(cuid())
+  tenantId String
+  name     String // friendly label, e.g. "Acme Store"
+  domain   String? // hostname, e.g. "shop.acme.com"
+  apiKey   String       @unique // public widget key (not a secret)
+  status   EntityStatus @default(active)
+
+  // Ownership verification: flips true the first time the widget script loads
+  // on a real website and calls the API (carrying that site's origin).
+  verified       Boolean   @default(false)
+  verifiedAt     DateTime?
+  verifiedOrigin String? // origin where the script was first detected
+
+  // Billing (per-domain). Null until this domain subscribes to a paid plan.
+  planTier               PlanTier  @default(free)
+  razorpayCustomerId     String?
+  razorpaySubscriptionId String?
+  subscriptionStatus     String? // created | active | halted | cancelled
+  planRenewsAt           DateTime?
+
+  createdAt DateTime @default(now())
+
+  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purposes       ConsentPurpose[]
+  noticeVersions NoticeVersion[]
+  dataPrincipals DataPrincipal[]
+  consentRecords ConsentRecord[]
+  dprRequests    DPRRequest[]
+  breaches       BreachIncident[]
+
+  @@index([tenantId])
+  @@map("sites")
+}
+
+// ---------------------------------------------------------------------------
+// Consent configuration (per site)
+// ---------------------------------------------------------------------------
+
+model ConsentPurpose {
+  id          String  @id @default(cuid())
+  siteId      String
+  name        String
+  description String
+  isEssential Boolean @default(false) // essential purposes cannot be declined
+  isActive    Boolean @default(true) // soft-hide instead of delete (ledger integrity)
+  sortOrder   Int     @default(0)
+
+  // Stable slug used by the widget to gate scripts, e.g. data-dpdp="analytics".
+  categoryKey String  @default("")
+
+  involvesMinors Boolean @default(false) // routes through parental consent
+
+  createdAt DateTime @default(now())
+
+  site           Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  consentRecords ConsentRecord[]
+
+  @@index([siteId])
+  @@map("consent_purposes")
+}
+
+model NoticeVersion {
+  id          String   @id @default(cuid())
+  siteId      String
+  language    String   @default("en") // ISO 639-1
+  bodyText    String
+  version     Int // monotonic per (site, language)
+  publishedAt DateTime @default(now())
+
+  site           Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  consentRecords ConsentRecord[]
+
+  @@unique([siteId, language, version])
+  @@index([siteId, language])
+  @@map("notice_versions")
+}
+
+// ---------------------------------------------------------------------------
+// Data principals + consent ledger (per site)
+// ---------------------------------------------------------------------------
+
+model DataPrincipal {
+  id             String         @id @default(cuid())
+  siteId         String
+  identifierType IdentifierType @default(anon)
+  identifierEnc  String // AES-256-GCM ciphertext of the raw identifier
+  identifierHash String // HMAC-SHA256 blind index, for equality lookups
+  createdAt      DateTime       @default(now())
+
+  site           Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  consentRecords ConsentRecord[]
+  dprRequests    DPRRequest[]
+
+  @@unique([siteId, identifierHash])
+  @@index([siteId])
+  @@map("data_principals")
+}
+
+// APPEND-ONLY. Never updated or deleted. Current state for a (principal, purpose)
+// is the row with the greatest timestamp. A DB trigger enforces this.
+model ConsentRecord {
+  id              String        @id @default(cuid())
+  siteId          String
+  dataPrincipalId String
+  purposeId       String
+  noticeVersionId String
+  action          ConsentAction
+  timestamp       DateTime      @default(now())
+  ipAddress       String?
+  method          ConsentMethod @default(widget)
+  eventId         String? // one id per submission, so a single "save" groups together
+
+  site          Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  dataPrincipal DataPrincipal  @relation(fields: [dataPrincipalId], references: [id], onDelete: Cascade)
+  purpose       ConsentPurpose @relation(fields: [purposeId], references: [id])
+  noticeVersion NoticeVersion  @relation(fields: [noticeVersionId], references: [id])
+
+  @@index([siteId, timestamp])
+  @@index([siteId, purposeId])
+  @@index([dataPrincipalId, purposeId, timestamp])
+  @@index([eventId])
+  @@map("consent_records")
+}
+
+// ---------------------------------------------------------------------------
+// Data Principal Rights requests (per site)
+// ---------------------------------------------------------------------------
+
+model DPRRequest {
+  id              String    @id @default(cuid())
+  siteId          String
+  dataPrincipalId String?
+  type            DprType
+  detailsEnc      String // AES-256-GCM ciphertext of free-text details
+  status          DprStatus @default(open)
+  slaDeadline     DateTime
+  resolutionNotes String?
+  createdAt       DateTime  @default(now())
+  resolvedAt      DateTime?
+
+  site          Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  dataPrincipal DataPrincipal? @relation(fields: [dataPrincipalId], references: [id])
+
+  @@index([siteId, status])
+  @@map("dpr_requests")
+}
+
+// ---------------------------------------------------------------------------
+// Breach register + parental consent (per site)
+// ---------------------------------------------------------------------------
+
+model BreachIncident {
+  id                      String       @id @default(cuid())
+  siteId                  String
+  description             String
+  discoveredAt            DateTime
+  reportedToBoardAt       DateTime?
+  affectedUsersNotifiedAt DateTime?
+  status                  BreachStatus @default(open)
+  createdAt               DateTime     @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@map("breach_incidents")
+}
+
+model ParentalConsent {
+  id                String    @id @default(cuid())
+  siteId            String
+  dataPrincipalId   String // the minor
+  guardianRef       String // encrypted guardian email
+  verificationToken String?   @unique
+  pendingPurposes   Json? // purpose decisions awaiting verification
+  language          String    @default("en")
+  verifiedAt        DateTime?
+  method            String?
+  createdAt         DateTime  @default(now())
+
+  @@index([siteId])
+  @@map("parental_consents")
+}
+
+// ---------------------------------------------------------------------------
+// Platform + audit
+// ---------------------------------------------------------------------------
+
+model SuperAdmin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@map("super_admins")
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  tenantId    String
+  siteId      String?
+  actorType   ActorType @default(admin)
+  actorId     String?
+  action      String
+  targetTable String?
+  targetId    String?
+  metadata    Json?
+  timestamp   DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, timestamp])
+  @@map("audit_logs")
+}

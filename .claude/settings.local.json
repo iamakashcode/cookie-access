@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(echo \"API starting, pid $!\")",
+      "Bash(curl -sf http://localhost:4000/health)",
+      "Bash(break)",
+      "Bash(curl -s http://localhost:4000/health)",
+      "Bash(curl -s 'http://localhost:4000/api/public/purposes?tenantKey=dpdp_pk_demo_0123456789abcdef&language=en')",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s http://localhost:4000/widget.js -o /tmp/w.js -w \"HTTP %{http_code}, %{size_download} bytes, type=%{content_type}\\\\n\")",
+      "Read(//tmp/**)",
+      "Bash(curl -s -X POST http://localhost:4000/api/public/consent -H 'Content-Type: application/json' -d '{\"tenantKey\":\"dpdp_pk_demo_0123456789abcdef\",\"identifier\":\"shopper@example.com\",\"identifierType\":\"email\",\"language\":\"en\",\"decisions\":[{\"purposeId\":\"cmrc6gv0f0004dm1qwtgkae4l\",\"granted\":false},{\"purposeId\":\"cmrc6gv0h0006dm1qwlcf8xa9\",\"granted\":true},{\"purposeId\":\"cmrc6gv0i0008dm1qiswm97v7\",\"granted\":false}]}')",
+      "Bash(curl -s 'http://localhost:4000/api/public/consent-status?tenantKey=dpdp_pk_demo_0123456789abcdef&identifier=shopper@example.com')",
+      "Bash(curl -s http://localhost:4000/api/admin/dashboard/summary -w \"\\\\nHTTP %{http_code}\\\\n\")",
+      "Bash(curl -s \"http://localhost:4000/api/public/purposes?tenantKey=bogus_key\" -w \"\\\\nHTTP %{http_code}\\\\n\")",
+      "Bash(curl -s \"http://localhost:4000/api/public/purposes\" -w \"\\\\nHTTP %{http_code}\\\\n\")"
+    ]
+  }
+}

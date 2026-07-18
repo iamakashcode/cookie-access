@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# Generated widget bundle (built into public/ → uploaded to R2/CDN)
+public/widget.js
+
+# Prisma
+prisma/*.db
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Misc
+coverage/
+.turbo/

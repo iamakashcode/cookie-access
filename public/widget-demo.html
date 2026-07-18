@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Demo Store — DPDP Consent Widget Test Page</title>
+
+    <!--
+      BLOCK-FIRST: the consent widget loads FIRST in <head> (not async) so it can
+      neutralise trackers before they run. widget.js is a static file (served here
+      by Next from /public; in production from your CDN).
+    -->
+    <script
+      src="/widget.js"
+      data-tenant-key="dpdp_pk_demo_0123456789abcdef"
+    ></script>
+
+    <!--
+      A "tracker" that is BLOCKED until the visitor consents to Analytics.
+      type="text/plain" means the browser won't run it; the widget turns it into
+      a live script only when "analytics" consent is granted.
+    -->
+    <script type="text/plain" data-dpdp="analytics">
+      window.__analyticsRan = true;
+      console.log("[demo] analytics tracker RAN");
+    </script>
+
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; color: #1a1a2e; background: #f6f6fb; }
+      .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 160px; }
+      h1 { font-size: 28px; }
+      p { line-height: 1.6; color: #45455f; }
+      .card { background: #fff; border: 1px solid #e8e8f0; border-radius: 14px; padding: 20px 24px; margin: 20px 0; }
+      code { background: #eeeef6; padding: 2px 6px; border-radius: 5px; font-size: 13px; }
+      button { font: inherit; padding: 9px 14px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+      button:hover { background: #f2f2f8; }
+      .status { font-weight: 600; }
+      .blocked { color: #b45309; }
+      .allowed { color: #059669; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Demo Store</h1>
+      <p>
+        This page stands in for a real customer website. It has an
+        <strong>Analytics tracker</strong> that is <strong>blocked by default</strong>
+        — it only runs after you consent to Analytics in the banner.
+      </p>
+
+      <div class="card">
+        <h3>Tracker status</h3>
+        <p>
+          Analytics tracker:
+          <span id="tracker" class="status blocked">checking…</span>
+        </p>
+        <p>
+          <button onclick="refresh()">Refresh status</button>
+          <button onclick="window.DPDPConsent && window.DPDPConsent.open()">Open preferences</button>
+        </p>
+        <p style="font-size: 13px; color: #6a6a80">
+          Accept <strong>Analytics</strong> → the tracker runs and this turns green.
+          Withdraw it → the page reloads and it's blocked again.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Try it</h3>
+        <p>
+          Use the banner to accept/decline per purpose. A persistent
+          <strong>Manage preferences</strong> launcher stays in the corner so you
+          can change or withdraw consent any time.
+        </p>
+        <button onclick="window.DPDPConsent && window.DPDPConsent.identify('shopper@example.com')">
+          identify("shopper@example.com")
+        </button>
+      </div>
+    </div>
+
+    <script>
+      function refresh() {
+        var el = document.getElementById("tracker");
+        var ran = window.__analyticsRan === true;
+        var consent = window.DPDPConsent && window.DPDPConsent.getConsent
+          ? window.DPDPConsent.getConsent("analytics")
+          : false;
+        if (ran) {
+          el.textContent = "RUNNING (analytics consent granted)";
+          el.className = "status allowed";
+        } else {
+          el.textContent = "BLOCKED (consent = " + consent + ")";
+          el.className = "status blocked";
+        }
+      }
+      // Update automatically whenever consent changes, plus once on load.
+      window.addEventListener("load", function () {
+        if (window.DPDPConsent && window.DPDPConsent.onChange) {
+          window.DPDPConsent.onChange(refresh);
+        }
+        setTimeout(refresh, 800);
+      });
+    </script>
+  </body>
+</html>
