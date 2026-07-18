@@ -1,5 +1,6 @@
 import { css } from "./styles";
 import { getStrings, type Strings } from "./strings";
+import { themeVars, type BannerTheme } from "./theme";
 
 export interface UIPurpose {
   id: string;
@@ -31,11 +32,16 @@ export class WidgetUI {
   private host: HTMLElement;
   private root: HTMLElement;
   private t: Strings;
+  private theme: BannerTheme;
 
-  constructor(lang: string) {
+  constructor(lang: string, theme: BannerTheme) {
     this.t = getStrings(lang);
+    this.theme = theme;
     this.host = document.createElement("div");
     this.host.setAttribute("data-dpdp-consent", "");
+    // Apply the tenant's colours/radius as CSS variables (inherited into the shadow tree).
+    const vars = themeVars(theme);
+    for (const name in vars) this.host.style.setProperty(name, vars[name]);
     const shadow = this.host.attachShadow({ mode: "open" });
     const style = document.createElement("style");
     style.textContent = css;
@@ -80,7 +86,7 @@ export class WidgetUI {
   showBanner(data: UIData, cb: { onSave: SaveFn; onCustomize: () => void }): void {
     this.hideBanner();
     const t = this.t;
-    const banner = this.el("div", "banner");
+    const banner = this.el("div", `banner layout-${this.theme.layout}`);
 
     banner.appendChild(this.el("h2", undefined, t.bannerTitle(data.businessName)));
     banner.appendChild(this.el("p", undefined, t.bannerBody));

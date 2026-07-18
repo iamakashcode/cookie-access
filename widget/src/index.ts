@@ -7,6 +7,7 @@ import {
 } from "./api";
 import { WidgetUI, type UIData } from "./ui";
 import { getStrings } from "./strings";
+import { resolveTheme } from "./theme";
 import type { Decision, IdentifierType, Purpose } from "./types";
 import {
   installBlocking,
@@ -18,9 +19,11 @@ import {
 import {
   getActiveIdentity,
   getCachedConsent,
+  getCachedPurposes,
   hasChosen,
   setActiveIdentity,
   setCachedConsent,
+  setCachedPurposes,
 } from "./storage";
 
 // Patch script creation to auto-block known trackers as early as possible.
@@ -59,10 +62,16 @@ async function init(): Promise<void> {
 
   // Everything below is wrapped so a failure can never break the host page.
   try {
-    const resp = await fetchPurposes(cfg);
-    if (!resp || resp.purposes.length === 0) return; // API down / nothing to show → no-op
+    // Serve from the short-lived local cache when fresh, else fetch + cache.
+    // Repeat page views within the TTL never touch the network or the server.
+    let fetched = getCachedPurposes(cfg.tenantKey, cfg.language);
+    const fromCache = !!fetched;
+    if (!fetched) fetched = await fetchPurposes(cfg);
+    if (!fetched || fetched.purposes.length === 0) return; // API down / empty → no-op
+    if (!fromCache) setCachedPurposes(cfg.tenantKey, cfg.language, fetched);
+    const resp = fetched; // const binding → narrowing persists inside closures
 
-    const ui = new WidgetUI(cfg.language);
+    const ui = new WidgetUI(cfg.language, resolveTheme(resp.theme));
     ui.mount();
     const t = getStrings(cfg.language);
 

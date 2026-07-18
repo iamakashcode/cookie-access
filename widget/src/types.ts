@@ -15,10 +15,13 @@ export interface NoticeInfo {
   publishedAt: string;
 }
 
+import type { BannerTheme } from "./theme";
+
 export interface PurposesResponse {
   businessName: string;
   purposes: Purpose[];
   notice: NoticeInfo | null;
+  theme?: Partial<BannerTheme>;
 }
 
 export interface StatusPurpose extends Purpose {

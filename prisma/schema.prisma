@@ -134,6 +134,9 @@ model Site {
   verifiedAt     DateTime?
   verifiedOrigin String? // origin where the script was first detected
 
+  // Banner appearance (colours, layout, radius). Null → default theme.
+  bannerTheme Json?
+
   // Billing (per-domain). Null until this domain subscribes to a paid plan.
   planTier               PlanTier  @default(free)
   razorpayCustomerId     String?

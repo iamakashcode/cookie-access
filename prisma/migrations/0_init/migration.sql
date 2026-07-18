@@ -62,6 +62,7 @@ CREATE TABLE "sites" (
     "verified" BOOLEAN NOT NULL DEFAULT false,
     "verifiedAt" TIMESTAMP(3),
     "verifiedOrigin" TEXT,
+    "bannerTheme" JSONB,
     "planTier" "PlanTier" NOT NULL DEFAULT 'free',
     "razorpayCustomerId" TEXT,
     "razorpaySubscriptionId" TEXT,

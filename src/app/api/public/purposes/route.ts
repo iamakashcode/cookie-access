@@ -10,6 +10,7 @@ import {
 import { latestNotice } from "@/server/lib/notices";
 import { markSiteVerified } from "@/server/lib/verification";
 import { slugify } from "@/server/lib/slug";
+import { resolveTheme } from "@/server/lib/theme";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,7 +30,16 @@ export function GET(req: NextRequest) {
       if (origin) void markSiteVerified(site.id, origin);
     }
 
-    const [purposes, notice] = await Promise.all([
+    // Edge caching: this response changes rarely, so let the CDN serve it and
+    // keep the DB/function out of the per-pageview path. Only cache verified
+    // domains — unverified ones must keep hitting the function so verification
+    // fires reliably on their first real load. Cache key = full URL (per key +
+    // language). `s-maxage` caches at the edge; browser still revalidates.
+    const cacheControl = site.verified
+      ? "public, s-maxage=60, stale-while-revalidate=300"
+      : "no-store";
+
+    const [purposes, notice, siteRow] = await Promise.all([
       prisma.consentPurpose.findMany({
         where: { siteId: site.id, isActive: true },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -43,10 +53,15 @@ export function GET(req: NextRequest) {
         },
       }),
       latestNotice(site.id, language),
+      prisma.site.findUnique({
+        where: { id: site.id },
+        select: { bannerTheme: true },
+      }),
     ]);
 
-    return corsJson({
+    const res = corsJson({
       businessName: site.name,
+      theme: resolveTheme(siteRow?.bannerTheme),
       purposes: purposes.map((p) => ({
         id: p.id,
         name: p.name,
@@ -66,5 +81,9 @@ export function GET(req: NextRequest) {
           }
         : null,
     });
+    res.headers.set("Cache-Control", cacheControl);
+    // Vercel's edge honours this explicitly, independent of the framework.
+    res.headers.set("CDN-Cache-Control", cacheControl);
+    return res;
   });
 }

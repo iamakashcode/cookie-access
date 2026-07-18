@@ -10,6 +10,7 @@ const NAV = [
   { href: "/dashboard", label: "Overview", icon: "▚" },
   { href: "/purposes", label: "Consent purposes", icon: "☑" },
   { href: "/notices", label: "Privacy notice", icon: "▤" },
+  { href: "/appearance", label: "Banner design", icon: "◑" },
   { href: "/consent-log", label: "Consent records", icon: "≣" },
   { href: "/requests", label: "Data-rights requests", icon: "✎" },
   { href: "/breaches", label: "Breach log", icon: "⚠" },

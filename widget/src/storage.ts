@@ -1,12 +1,20 @@
-import type { IdentifierType } from "./types";
+import type { IdentifierType, PurposesResponse } from "./types";
 
 const DEVICE_KEY = "dpdp_did";
 const CONSENT_KEY = "dpdp_consent_v1";
 const IDENTITY_KEY = "dpdp_identity_v1";
+const PURPOSES_KEY = "dpdp_purposes_v1";
+const PURPOSES_TTL_MS = 5 * 60 * 1000; // 5 min — repeat page views skip the fetch
 
 interface CachedConsent {
   updatedAt: number;
   decisions: Record<string, boolean>;
+}
+
+interface CachedPurposes {
+  at: number;
+  key: string; // tenantKey:language, so a different site/lang misses
+  data: PurposesResponse;
 }
 
 interface CachedIdentity {
@@ -88,4 +96,40 @@ export function setCachedConsent(decisions: Record<string, boolean>): void {
 /** Whether the visitor has already made a choice (so we don't re-prompt). */
 export function hasChosen(): boolean {
   return getCachedConsent() !== null;
+}
+
+/**
+ * Short-lived cache of the purposes/notice payload, so a visitor browsing
+ * several pages only fetches it once (per site+language) within the TTL. This
+ * takes repeat page views off the server entirely.
+ */
+export function getCachedPurposes(
+  tenantKey: string,
+  language: string,
+): PurposesResponse | null {
+  const raw = safeGet(PURPOSES_KEY);
+  if (!raw) return null;
+  try {
+    const c = JSON.parse(raw) as CachedPurposes;
+    if (c.key !== `${tenantKey}:${language}`) return null;
+    if (Date.now() - c.at > PURPOSES_TTL_MS) return null;
+    return c.data;
+  } catch {
+    return null;
+  }
+}
+
+export function setCachedPurposes(
+  tenantKey: string,
+  language: string,
+  data: PurposesResponse,
+): void {
+  safeSet(
+    PURPOSES_KEY,
+    JSON.stringify({
+      at: Date.now(),
+      key: `${tenantKey}:${language}`,
+      data,
+    } satisfies CachedPurposes),
+  );
 }

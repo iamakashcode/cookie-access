@@ -3,6 +3,15 @@ export interface SessionResponse {
   tenant: { id: string; businessName: string } | null;
 }
 
+export interface BannerTheme {
+  preset: string;
+  layout: "bar" | "box-left" | "box-right" | "modal";
+  primaryColor: string;
+  bgColor: string;
+  textColor: string;
+  radius: number;
+}
+
 export interface Site {
   id: string;
   name: string;
