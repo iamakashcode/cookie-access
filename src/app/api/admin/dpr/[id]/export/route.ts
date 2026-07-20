@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/server/prisma";
 import { handle, HttpError, requireAdmin, requireSite } from "@/server/http";
-import { decrypt } from "@/server/lib/crypto";
+import { decrypt, blindIndex } from "@/server/lib/crypto";
 import { buildAccessReport } from "@/server/lib/consentPdf";
 import { writeAuditLog } from "@/server/lib/audit";
 
@@ -43,10 +43,22 @@ export function GET(req: NextRequest, { params }: Ctx) {
     const identifier = safeDecrypt(request.dataPrincipal.identifierEnc);
     const identifierType = request.dataPrincipal.identifierType;
 
-    // Everything this person did on this domain.
+    // The requester filed under their email, but the consent may have been given
+    // anonymously in their browser (a different principal). If the widget passed
+    // that device id along, include its consent too.
+    const principalIds = [principalId];
+    if (request.subjectRef) {
+      const anon = await prisma.dataPrincipal.findFirst({
+        where: { siteId: site.id, identifierHash: blindIndex(request.subjectRef) },
+        select: { id: true },
+      });
+      if (anon && anon.id !== principalId) principalIds.push(anon.id);
+    }
+
+    // Everything this person did on this domain (across all matched identities).
     const [records, requests, siteRow] = await Promise.all([
       prisma.consentRecord.findMany({
-        where: { siteId: site.id, dataPrincipalId: principalId },
+        where: { siteId: site.id, dataPrincipalId: { in: principalIds } },
         orderBy: { timestamp: "desc" },
         include: {
           purpose: { select: { name: true } },

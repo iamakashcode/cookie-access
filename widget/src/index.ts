@@ -72,7 +72,12 @@ async function init(): Promise<void> {
     const resp = fetched; // const binding → narrowing persists inside closures
 
     // The rights portal is served by the API origin (not the customer's site).
-    const rightsUrl = `${cfg.apiBase}/rights?k=${encodeURIComponent(cfg.tenantKey)}`;
+    // Carry this browser's identity so an access request can be matched to the
+    // consent recorded here (which is anonymous by default).
+    const who = getActiveIdentity();
+    const rightsUrl =
+      `${cfg.apiBase}/rights?k=${encodeURIComponent(cfg.tenantKey)}` +
+      `&id=${encodeURIComponent(who.identifier)}`;
     const ui = new WidgetUI(cfg.language, resolveTheme(resp.theme), rightsUrl);
     ui.mount();
     const t = getStrings(cfg.language);

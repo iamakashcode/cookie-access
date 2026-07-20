@@ -15,6 +15,9 @@ const TYPES = [
 function RightsForm() {
   const params = useSearchParams();
   const tenantKey = params.get("k") || "";
+  // Anonymous widget device id, forwarded by the widget's rights link so an
+  // access request can be matched to consent given anonymously in that browser.
+  const subjectId = params.get("id") || "";
 
   const [businessName, setBusinessName] = useState("");
   const [type, setType] = useState("access");
@@ -41,7 +44,7 @@ function RightsForm() {
     try {
       const res = await api.post<{ referenceId: string }>(
         "/api/public/dpr-request",
-        { tenantKey, type, email, details },
+        { tenantKey, type, email, details, subjectId: subjectId || undefined },
       );
       setReference(res.referenceId);
       setState("done");

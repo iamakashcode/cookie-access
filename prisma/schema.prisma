@@ -261,6 +261,10 @@ model DPRRequest {
   status          DprStatus @default(open)
   slaDeadline     DateTime
   resolutionNotes String?
+  // The requester's anonymous widget device id (if they came via the widget's
+  // "Your data rights" link). Lets an access request also surface consent that
+  // was recorded anonymously in that browser, not just under their email.
+  subjectRef      String?
   createdAt       DateTime  @default(now())
   resolvedAt      DateTime?
 

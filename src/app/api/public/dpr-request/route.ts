@@ -16,6 +16,9 @@ const schema = z.object({
   type: z.enum(["access", "correction", "erasure", "grievance", "nomination"]),
   email: z.string().email("A contact email is required so we can respond"),
   details: z.string().min(1).max(5000),
+  // Optional widget device id, forwarded by the "Your data rights" link, so an
+  // access request can also find consent recorded anonymously in that browser.
+  subjectId: z.string().max(200).optional(),
 });
 
 // POST /api/public/dpr-request
@@ -25,6 +28,10 @@ export function POST(req: NextRequest) {
     const site = await resolveSiteKey(body.tenantKey);
 
     const principal = await upsertDataPrincipal(site.id, body.email, "email");
+    // Only keep a device id that's different from the email (i.e. an anonymous
+    // browser id worth cross-referencing).
+    const subjectRef =
+      body.subjectId && body.subjectId !== body.email ? body.subjectId : null;
     const dpr = await prisma.dPRRequest.create({
       data: {
         siteId: site.id,
@@ -33,6 +40,7 @@ export function POST(req: NextRequest) {
         detailsEnc: encrypt(body.details),
         status: "open",
         slaDeadline: slaDeadlineFrom(),
+        subjectRef,
       },
       select: { id: true, type: true, slaDeadline: true },
     });
