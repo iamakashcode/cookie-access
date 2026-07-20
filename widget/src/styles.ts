@@ -93,6 +93,7 @@ export const css = `
 .switch input:disabled + .slider { opacity: 0.6; cursor: not-allowed; }
 
 .notice-toggle { margin-top: 12px; }
+.rights-link { display: inline-block; margin-top: 14px; font-weight: 600; }
 .notice-text { margin-top: 10px; font-size: 12px; color: var(--dpdp-muted, #55556e); white-space: pre-wrap; line-height: 1.5; background: var(--dpdp-secondary-bg, #fafafd); border: 1px solid var(--dpdp-border, #eee); border-radius: 10px; padding: 12px; max-height: 220px; overflow-y: auto; }
 .foot-note { font-size: 11px; color: var(--dpdp-muted, #9a9ab0); margin: 12px 22px 0; }
 

@@ -33,10 +33,12 @@ export class WidgetUI {
   private root: HTMLElement;
   private t: Strings;
   private theme: BannerTheme;
+  private rightsUrl: string | null;
 
-  constructor(lang: string, theme: BannerTheme) {
+  constructor(lang: string, theme: BannerTheme, rightsUrl?: string | null) {
     this.t = getStrings(lang);
     this.theme = theme;
+    this.rightsUrl = rightsUrl ?? null;
     this.host = document.createElement("div");
     this.host.setAttribute("data-dpdp-consent", "");
     // Apply the tenant's colours/radius as CSS variables (inherited into the shadow tree).
@@ -198,6 +200,16 @@ export class WidgetUI {
         toggle.textContent = open ? t.hideNotice : t.viewNotice;
       };
       body.append(toggle, noticeBox);
+    }
+
+    // "Your data rights" — opens the business's rights portal in a new tab so a
+    // visitor can request access / correction / erasure of their data.
+    if (this.rightsUrl) {
+      const rights = this.el("a", "link rights-link", this.t.dataRights) as HTMLAnchorElement;
+      rights.href = this.rightsUrl;
+      rights.target = "_blank";
+      rights.rel = "noopener noreferrer";
+      body.appendChild(rights);
     }
     modal.appendChild(body);
 

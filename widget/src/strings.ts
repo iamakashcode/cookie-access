@@ -20,6 +20,7 @@ export interface Strings {
   guardianPlaceholder: string;
   minorHint: string;
   minorToast: string;
+  dataRights: string;
 }
 
 const en: Strings = {
@@ -45,6 +46,7 @@ const en: Strings = {
   minorHint:
     "We'll email the parent/guardian to confirm before recording consent.",
   minorToast: "We've emailed the parent/guardian to confirm consent.",
+  dataRights: "Your data rights (access, correct or delete your data) →",
 };
 
 const hi: Strings = {
@@ -70,6 +72,7 @@ const hi: Strings = {
   minorHint:
     "सहमति दर्ज करने से पहले हम माता-पिता/अभिभावक को पुष्टि के लिए ईमेल करेंगे।",
   minorToast: "हमने सहमति की पुष्टि के लिए माता-पिता/अभिभावक को ईमेल किया है।",
+  dataRights: "आपके डेटा अधिकार (डेटा देखें, सुधारें या हटाएँ) →",
 };
 
 export function getStrings(lang: string): Strings {

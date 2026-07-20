@@ -71,7 +71,9 @@ async function init(): Promise<void> {
     if (!fromCache) setCachedPurposes(cfg.tenantKey, cfg.language, fetched);
     const resp = fetched; // const binding → narrowing persists inside closures
 
-    const ui = new WidgetUI(cfg.language, resolveTheme(resp.theme));
+    // The rights portal is served by the API origin (not the customer's site).
+    const rightsUrl = `${cfg.apiBase}/rights?k=${encodeURIComponent(cfg.tenantKey)}`;
+    const ui = new WidgetUI(cfg.language, resolveTheme(resp.theme), rightsUrl);
     ui.mount();
     const t = getStrings(cfg.language);
 
