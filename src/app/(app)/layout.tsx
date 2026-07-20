@@ -83,14 +83,38 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           },
         }}
       >
-        <div className="flex flex-1">
+        <div className="flex flex-1 overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto bg-slate-50 px-8 py-8">
-            {/* Remount page content when the selected domain changes → refetch. */}
-            <div key={current.id} className="mx-auto max-w-5xl">
-              {children}
-            </div>
-          </main>
+          <div className="flex flex-1 flex-col overflow-hidden">
+            {/* Top bar: which domain everything on the page applies to. */}
+            <header className="flex flex-none items-center justify-between gap-4 border-b border-slate-200 bg-white/80 px-8 py-3.5 backdrop-blur">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="truncate text-sm font-semibold text-slate-800">
+                  {current.name}
+                </span>
+                {current.verified ? (
+                  <span className="inline-flex flex-none items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Verified
+                  </span>
+                ) : (
+                  <span className="inline-flex flex-none items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    Unverified
+                  </span>
+                )}
+              </div>
+              <span className="flex-none rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold capitalize text-slate-500">
+                {current.planTier} plan
+              </span>
+            </header>
+            <main className="app-scroll flex-1 overflow-y-auto bg-slate-50 px-8 py-8">
+              {/* Remount page content when the selected domain changes → refetch. */}
+              <div key={current.id} className="mx-auto max-w-6xl animate-fade-in">
+                {children}
+              </div>
+            </main>
+          </div>
         </div>
       </DomainContext.Provider>
     </SessionContext.Provider>

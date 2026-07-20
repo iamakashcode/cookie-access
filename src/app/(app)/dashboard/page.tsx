@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { DashboardSummary } from "@/lib/types";
-import { Card, PageHeader, StatTile } from "@/components/ui";
+import { Card, CardTitle, PageHeader, StatTile } from "@/components/ui";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardSummary | null>(null);
@@ -28,42 +28,59 @@ export default function DashboardPage() {
         subtitle="A snapshot of the consent you've collected and any open requests."
       />
 
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatTile label="Consents given" value={totals.grants} />
-        <StatTile label="Consents withdrawn" value={totals.withdrawals} />
-        <StatTile label="People tracked" value={totals.trackedPeople} />
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatTile
+          label="Consents given"
+          value={totals.grants}
+          icon="✓"
+          accent="emerald"
+        />
+        <StatTile
+          label="Consents withdrawn"
+          value={totals.withdrawals}
+          icon="↺"
+          accent="amber"
+        />
+        <StatTile
+          label="People tracked"
+          value={totals.trackedPeople}
+          icon="◕"
+          accent="brand"
+        />
         <StatTile
           label="Open requests"
           value={totals.openDprRequests}
           hint="Access / correction / erasure"
+          icon="✎"
+          accent="slate"
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <h2 className="mb-3 text-sm font-semibold text-slate-700">
-            Consent by purpose
-          </h2>
+          <CardTitle>Consent by purpose</CardTitle>
           {byPurpose.length === 0 ? (
-            <p className="text-sm text-slate-400">
+            <p className="mt-4 text-sm text-slate-400">
               No consent recorded yet. Install the widget to start collecting.
             </p>
           ) : (
-            <div className="space-y-3">
+            <div className="mt-5 space-y-4">
               {byPurpose.map((p) => {
                 const total = p.granted + p.withdrawn || 1;
                 const pct = Math.round((p.granted / total) * 100);
                 return (
                   <div key={p.purpose}>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span className="text-slate-700">{p.purpose}</span>
-                      <span className="text-slate-400">
+                    <div className="mb-1.5 flex items-center justify-between text-sm">
+                      <span className="font-medium text-slate-700">
+                        {p.purpose}
+                      </span>
+                      <span className="text-xs text-slate-400">
                         {p.granted} on · {p.withdrawn} off
                       </span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                       <div
-                        className="h-full rounded-full bg-brand-500"
+                        className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-600 transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -75,31 +92,40 @@ export default function DashboardPage() {
         </Card>
 
         <Card>
-          <h2 className="mb-3 text-sm font-semibold text-slate-700">
-            Recent activity
-          </h2>
+          <CardTitle>Recent activity</CardTitle>
           {recentActivity.length === 0 ? (
-            <p className="text-sm text-slate-400">Nothing yet.</p>
+            <p className="mt-4 text-sm text-slate-400">Nothing yet.</p>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="mt-2 divide-y divide-slate-100">
               {recentActivity.map((r) => (
                 <li
                   key={r.id}
-                  className="flex items-center justify-between py-2 text-sm"
+                  className="flex items-center justify-between gap-3 py-2.5 text-sm"
                 >
-                  <span className="text-slate-700">
+                  <span className="flex min-w-0 items-center gap-2">
                     <span
-                      className={
+                      className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-xs ${
                         r.action === "granted"
-                          ? "font-medium text-emerald-600"
-                          : "font-medium text-amber-600"
-                      }
+                          ? "bg-emerald-50 text-emerald-600"
+                          : "bg-amber-50 text-amber-600"
+                      }`}
                     >
-                      {r.action === "granted" ? "Consent given" : "Withdrawn"}
-                    </span>{" "}
-                    · {r.purpose}
+                      {r.action === "granted" ? "✓" : "↺"}
+                    </span>
+                    <span className="truncate text-slate-700">
+                      <span
+                        className={
+                          r.action === "granted"
+                            ? "font-semibold text-emerald-700"
+                            : "font-semibold text-amber-700"
+                        }
+                      >
+                        {r.action === "granted" ? "Consent given" : "Withdrawn"}
+                      </span>{" "}
+                      · {r.purpose}
+                    </span>
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="flex-none text-xs text-slate-400">
                     {new Date(r.timestamp).toLocaleString()}
                   </span>
                 </li>

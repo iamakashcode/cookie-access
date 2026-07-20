@@ -16,13 +16,16 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen flex flex-col">
         <div className="flex-1 flex flex-col">{children}</div>
-        <footer className="border-t border-slate-200 bg-white px-6 py-4 text-xs leading-relaxed text-slate-500">
-          <p className="mx-auto max-w-5xl">
+        <footer className="border-t border-slate-200 bg-white px-8 py-3.5 text-[11px] leading-relaxed text-slate-400">
+          <p className="mx-auto max-w-6xl">
             This tool helps you operationalize consent management and
             record-keeping under India&rsquo;s Digital Personal Data Protection
-            Act. It <strong>does not constitute legal advice</strong> and is not a
-            substitute for a lawyer. Consult qualified legal counsel about your
-            specific compliance obligations.
+            Act. It{" "}
+            <strong className="font-semibold text-slate-500">
+              does not constitute legal advice
+            </strong>{" "}
+            and is not a substitute for a lawyer. Consult qualified legal counsel
+            about your specific compliance obligations.
           </p>
         </footer>
       </body>
