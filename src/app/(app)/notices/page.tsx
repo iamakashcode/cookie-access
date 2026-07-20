@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { NoticeVersion } from "@/lib/types";
-import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Button, Card, CardTitle, ErrorNote, PageHeader } from "@/components/ui";
 
 const TEMPLATE = `Privacy Notice — [Your business name]
 
@@ -105,12 +105,10 @@ export default function NoticesPage() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
           <Card>
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-700">
-                Notice text ({langLabel})
-              </h2>
+            <div className="mb-3 flex items-center justify-between">
+              <CardTitle>Notice text ({langLabel})</CardTitle>
               {current && (
-                <span className="text-xs text-slate-400">
+                <span className="text-xs font-medium text-slate-400">
                   Current: v{current.version}
                 </span>
               )}
@@ -136,9 +134,9 @@ export default function NoticesPage() {
           </Card>
 
           <Card>
-            <h2 className="mb-3 text-sm font-semibold text-slate-700">
-              Version history
-            </h2>
+            <div className="mb-3">
+              <CardTitle>Version history</CardTitle>
+            </div>
             {history.length === 0 ? (
               <p className="text-sm text-slate-400">No versions published yet.</p>
             ) : (

@@ -175,7 +175,7 @@ export default function ConsentLogPage() {
                   <Th>Report</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 [&_tr:hover]:bg-slate-50/60">
                 {events?.events.map((ev) => (
                   <tr key={ev.id}>
                     <Td>{new Date(ev.timestamp).toLocaleString()}</Td>
@@ -238,7 +238,7 @@ export default function ConsentLogPage() {
                   <Th>Source</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 [&_tr:hover]:bg-slate-50/60">
                 {records?.records.map((r) => (
                   <tr key={r.id}>
                     <Td>{new Date(r.timestamp).toLocaleString()}</Td>

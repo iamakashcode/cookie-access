@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { DprRequest } from "@/lib/types";
-import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Badge, type BadgeColor, Button, Card, ErrorNote, PageHeader } from "@/components/ui";
 
 const TYPE_LABEL: Record<string, string> = {
   access: "Access data",
@@ -174,19 +174,15 @@ export default function RequestsPage() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    open: "bg-amber-50 text-amber-700",
-    in_progress: "bg-blue-50 text-blue-700",
-    resolved: "bg-emerald-50 text-emerald-700",
+  const color: Record<string, BadgeColor> = {
+    open: "warning",
+    in_progress: "info",
+    resolved: "success",
   };
   const label: Record<string, string> = {
     open: "Open",
     in_progress: "In progress",
     resolved: "Resolved",
   };
-  return (
-    <span className={`rounded px-2 py-0.5 text-xs font-medium ${map[status]}`}>
-      {label[status] ?? status}
-    </span>
-  );
+  return <Badge color={color[status] ?? "neutral"}>{label[status] ?? status}</Badge>;
 }

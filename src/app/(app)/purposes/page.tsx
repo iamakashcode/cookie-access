@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Purpose } from "@/lib/types";
-import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Badge, Button, Card, CardTitle, ErrorNote, PageHeader } from "@/components/ui";
 
 interface FormState {
   id?: string;
@@ -100,9 +100,9 @@ export default function PurposesPage() {
 
       {form && (
         <Card className="mb-6">
-          <h2 className="mb-3 text-sm font-semibold text-slate-700">
-            {form.id ? "Edit purpose" : "New purpose"}
-          </h2>
+          <div className="mb-4">
+            <CardTitle>{form.id ? "Edit purpose" : "New purpose"}</CardTitle>
+          </div>
           <label className="mb-1 block text-sm font-medium text-slate-600">
             Name
           </label>
@@ -175,25 +175,19 @@ export default function PurposesPage() {
           {active.map((p) => (
             <Card key={p.id} className="flex items-start justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-slate-900">{p.name}</span>
-                  {p.isEssential && (
-                    <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                      Essential
-                    </span>
-                  )}
-                  {p.involvesMinors && (
-                    <span className="rounded bg-purple-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-purple-600">
-                      Minors
-                    </span>
-                  )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-slate-900">{p.name}</span>
+                  {p.isEssential && <Badge color="neutral">Essential</Badge>}
+                  {p.involvesMinors && <Badge color="purple">Minors</Badge>}
                   {p.categoryKey && (
-                    <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-slate-500">
+                    <Badge color="info" className="font-mono">
                       {p.categoryKey}
-                    </span>
+                    </Badge>
                   )}
                 </div>
-                <p className="mt-1 text-sm text-slate-500">{p.description}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
+                  {p.description}
+                </p>
               </div>
               <div className="flex flex-none gap-2">
                 <Button

@@ -11,6 +11,50 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
+/* Consistent text-input styling across every form, without touching each page.
+   Native controls (checkbox/radio/range/color/file) are intentionally excluded. */
+@layer base {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input:not([type]),
+  select,
+  textarea {
+    @apply rounded-lg border border-slate-300 bg-white text-sm text-slate-800 shadow-sm outline-none transition;
+  }
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="search"]:focus,
+  input[type="url"]:focus,
+  input[type="tel"]:focus,
+  input[type="number"]:focus,
+  input[type="date"]:focus,
+  input[type="datetime-local"]:focus,
+  input:not([type]):focus,
+  select:focus,
+  textarea:focus {
+    @apply border-brand-500 ring-2 ring-brand-100;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-slate-400;
+  }
+  /* Brand-tinted checkboxes / radios. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: theme("colors.brand.600");
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
 /* Consistent, readable focus ring for keyboard users. */
 :focus-visible {
   outline: 2px solid theme("colors.brand.500");

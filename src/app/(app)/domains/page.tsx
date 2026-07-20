@@ -120,7 +120,7 @@ export default function DomainsPage() {
 
       {showForm && (
         <Card className="mb-6">
-          <h2 className="mb-3 text-sm font-semibold text-slate-700">New domain</h2>
+          <h2 className="mb-3 text-sm font-semibold text-slate-800">New domain</h2>
           <label className="mb-1 block text-sm font-medium text-slate-600">
             Name
           </label>

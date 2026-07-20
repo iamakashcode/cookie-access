@@ -80,7 +80,7 @@ export default function InstallPage() {
       )}
 
       <Card className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-slate-700">
+        <h2 className="mb-2 text-sm font-semibold text-slate-800">
           Step 1 — add this to your site&rsquo;s <code>&lt;head&gt;</code>
         </h2>
         <p className="mb-3 text-sm text-slate-500">
@@ -102,7 +102,7 @@ export default function InstallPage() {
       </Card>
 
       <Card className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-slate-700">
+        <h2 className="mb-2 text-sm font-semibold text-slate-800">
           Step 2 — block your trackers until consent
         </h2>
         <p className="mb-3 text-sm text-slate-500">
@@ -149,7 +149,7 @@ export default function InstallPage() {
       </Card>
 
       <Card className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-slate-700">
+        <h2 className="mb-2 text-sm font-semibold text-slate-800">
           Your data-rights portal
         </h2>
         <p className="mb-2 text-sm text-slate-500">
@@ -168,7 +168,7 @@ export default function InstallPage() {
       </Card>
 
       <Card>
-        <h2 className="mb-2 text-sm font-semibold text-slate-700">
+        <h2 className="mb-2 text-sm font-semibold text-slate-800">
           Your public widget key
         </h2>
         <p className="mb-2 text-sm text-slate-500">

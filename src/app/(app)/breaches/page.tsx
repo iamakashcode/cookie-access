@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { BreachIncident } from "@/lib/types";
-import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Badge, type BadgeColor, Button, Card, CardTitle, ErrorNote, PageHeader } from "@/components/ui";
 
 export default function BreachesPage() {
   const [breaches, setBreaches] = useState<BreachIncident[]>([]);
@@ -87,9 +87,9 @@ export default function BreachesPage() {
 
       {showForm && (
         <Card className="mb-6">
-          <h2 className="mb-3 text-sm font-semibold text-slate-700">
-            New incident
-          </h2>
+          <div className="mb-4">
+            <CardTitle>New incident</CardTitle>
+          </div>
           <label className="mb-1 block text-sm font-medium text-slate-600">
             When did you discover it?
           </label>
@@ -135,23 +135,26 @@ export default function BreachesPage() {
             <Card key={b.id}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-slate-900">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-slate-900">
                       Discovered {new Date(b.discoveredAt).toLocaleString()}
                     </span>
-                    <span
-                      className={`rounded px-2 py-0.5 text-xs font-medium ${
-                        b.status === "closed"
-                          ? "bg-slate-100 text-slate-600"
-                          : b.status === "reported"
-                            ? "bg-blue-50 text-blue-700"
-                            : "bg-amber-50 text-amber-700"
-                      }`}
+                    <Badge
+                      color={
+                        (
+                          {
+                            closed: "neutral",
+                            reported: "info",
+                            open: "warning",
+                          } as Record<string, BadgeColor>
+                        )[b.status] ?? "warning"
+                      }
+                      className="capitalize"
                     >
                       {b.status}
-                    </span>
+                    </Badge>
                   </div>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">
+                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
                     {b.description}
                   </p>
                   <div className="mt-2 text-xs text-slate-500">

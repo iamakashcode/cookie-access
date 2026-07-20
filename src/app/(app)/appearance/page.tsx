@@ -117,7 +117,7 @@ export default function AppearancePage() {
         {/* Controls */}
         <div className="space-y-4">
           <Card>
-            <h2 className="mb-3 text-sm font-semibold text-slate-700">
+            <h2 className="mb-3 text-sm font-semibold text-slate-800">
               Prebuilt themes
             </h2>
             <div className="grid grid-cols-2 gap-2">

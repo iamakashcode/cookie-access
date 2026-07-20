@@ -119,6 +119,42 @@ export function Button({
   );
 }
 
+export type BadgeColor =
+  | "neutral"
+  | "brand"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info"
+  | "purple";
+
+export function Badge({
+  children,
+  color = "neutral",
+  className = "",
+}: {
+  children: React.ReactNode;
+  color?: BadgeColor;
+  className?: string;
+}) {
+  const colors: Record<BadgeColor, string> = {
+    neutral: "bg-slate-100 text-slate-600",
+    brand: "bg-brand-50 text-brand-700",
+    success: "bg-emerald-50 text-emerald-700",
+    warning: "bg-amber-50 text-amber-700",
+    danger: "bg-red-50 text-red-700",
+    info: "bg-sky-50 text-sky-700",
+    purple: "bg-violet-50 text-violet-700",
+  };
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${colors[color]} ${className}`}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function ErrorNote({ message }: { message: string }) {
   return (
     <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
