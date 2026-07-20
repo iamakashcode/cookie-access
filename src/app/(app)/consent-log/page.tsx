@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { api, consentCsvUrl } from "@/lib/api";
+import { api, consentCsvUrl, consentEventPdfUrl } from "@/lib/api";
 import type {
   ConsentEventsPage,
   ConsentPage,
@@ -172,6 +172,7 @@ export default function ConsentLogPage() {
                   <Th>Person</Th>
                   <Th>Decision</Th>
                   <Th>Source</Th>
+                  <Th>Report</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -207,11 +208,19 @@ export default function ConsentLogPage() {
                       </div>
                     </Td>
                     <Td>{ev.method}</Td>
+                    <Td>
+                      <a
+                        href={consentEventPdfUrl(ev.id)}
+                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50"
+                      >
+                        ↓ PDF
+                      </a>
+                    </Td>
                   </tr>
                 ))}
                 {events && events.events.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-10 text-center text-slate-400">
+                    <td colSpan={5} className="px-4 py-10 text-center text-slate-400">
                       No consent submissions match these filters yet.
                     </td>
                   </tr>

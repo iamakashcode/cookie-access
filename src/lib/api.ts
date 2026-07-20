@@ -84,3 +84,15 @@ export function consentCsvUrl(params: Record<string, string>): string {
   Object.entries(params).forEach(([k, v]) => v && u.searchParams.set(k, v));
   return u.toString();
 }
+
+/** Direct link to a single consent submission's PDF report (browser download). */
+export function consentEventPdfUrl(eventId: string): string {
+  const origin =
+    BASE || (typeof window !== "undefined" ? window.location.origin : "");
+  const u = new URL(
+    `${origin}/api/admin/consent/events/${encodeURIComponent(eventId)}/pdf`,
+  );
+  const siteId = getSelectedSiteId();
+  if (siteId) u.searchParams.set("siteId", siteId);
+  return u.toString();
+}
