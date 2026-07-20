@@ -2,7 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/server/prisma";
 import { handle, requireAdmin, requireSite } from "@/server/http";
-import { billingConfigured, createSubscription } from "@/server/lib/billing";
+import {
+  billingConfigured,
+  createSubscription,
+  razorpayKeyId,
+} from "@/server/lib/billing";
 import { writeAuditLog } from "@/server/lib/audit";
 
 export const runtime = "nodejs";
@@ -41,6 +45,13 @@ export function POST(req: NextRequest) {
       metadata: { tier, subscriptionId },
     });
 
-    return NextResponse.json({ subscriptionId, checkoutUrl: shortUrl });
+    // keyId + subscriptionId drive the embedded Razorpay Checkout (popup over
+    // our own page). shortUrl is kept as a fallback hosted-page link.
+    return NextResponse.json({
+      subscriptionId,
+      keyId: razorpayKeyId,
+      businessName: site.name,
+      checkoutUrl: shortUrl,
+    });
   });
 }

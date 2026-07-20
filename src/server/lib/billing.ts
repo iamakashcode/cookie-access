@@ -45,6 +45,9 @@ export const billingConfigured = Boolean(
   env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET,
 );
 
+// Public key id — safe to expose to the browser for Razorpay Checkout.
+export const razorpayKeyId = env.RAZORPAY_KEY_ID ?? null;
+
 let client: Razorpay | null = null;
 function razorpay(): Razorpay {
   if (!client) {

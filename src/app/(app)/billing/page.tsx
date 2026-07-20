@@ -6,37 +6,120 @@ import type { BillingInfo } from "@/lib/types";
 import { useDomains } from "@/components/DomainContext";
 import { Card, ErrorNote, PageHeader } from "@/components/ui";
 
+// Minimal shape of Razorpay Checkout we use.
+interface RazorpayOptions {
+  key: string;
+  subscription_id: string;
+  name: string;
+  description?: string;
+  handler: (r: unknown) => void;
+  modal?: { ondismiss?: () => void };
+  theme?: { color?: string };
+}
+interface RazorpayInstance {
+  open: () => void;
+  on: (event: string, cb: (r: unknown) => void) => void;
+}
+declare global {
+  interface Window {
+    Razorpay?: new (o: RazorpayOptions) => RazorpayInstance;
+  }
+}
+
+const CHECKOUT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
+
+// Load Razorpay Checkout once, on demand.
+function loadCheckout(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true);
+    const s = document.createElement("script");
+    s.src = CHECKOUT_SRC;
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
+
 export default function BillingPage() {
   const { current } = useDomains();
   const [info, setInfo] = useState<BillingInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
-  useEffect(() => {
-    api
+  function refresh() {
+    return api
       .get<BillingInfo>("/api/admin/billing")
       .then(setInfo)
       .catch((e) => setError(e.message));
+  }
+
+  useEffect(() => {
+    refresh();
   }, []);
+
+  // After a successful payment the plan is upgraded by the Razorpay webhook,
+  // which lands a moment later — poll a few times so the UI reflects it.
+  async function awaitUpgrade(tier: string) {
+    for (let i = 0; i < 8; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const next = await api
+        .get<BillingInfo>("/api/admin/billing")
+        .catch(() => null);
+      if (next) {
+        setInfo(next);
+        if (next.currentPlan === tier) {
+          setStatus(`You're now on the ${tier} plan. 🎉`);
+          return;
+        }
+      }
+    }
+    setStatus(
+      "Payment received. Your plan will update here shortly once confirmed.",
+    );
+  }
 
   async function subscribe(tier: "starter" | "growth") {
     setBusy(tier);
     setError(null);
+    setStatus(null);
     try {
-      const res = await api.post<{ checkoutUrl?: string }>(
-        "/api/admin/billing/subscribe",
-        { tier },
-      );
-      if (res.checkoutUrl) {
-        window.location.href = res.checkoutUrl; // Razorpay hosted checkout
-      } else {
-        setError("Subscription created, but no checkout URL was returned.");
+      const res = await api.post<{
+        subscriptionId: string;
+        keyId: string | null;
+        businessName: string;
+        checkoutUrl?: string;
+      }>("/api/admin/billing/subscribe", { tier });
+
+      // Preferred: embedded Checkout popup over this page → we control the
+      // post-payment flow and keep the user on the dashboard.
+      if (res.keyId && (await loadCheckout()) && window.Razorpay) {
+        const rzp = new window.Razorpay({
+          key: res.keyId,
+          subscription_id: res.subscriptionId,
+          name: res.businessName || current.name,
+          description: `${tier[0].toUpperCase()}${tier.slice(1)} plan`,
+          theme: { color: "#4338ca" },
+          handler: () => {
+            setBusy(null);
+            setStatus("Payment successful — activating your plan…");
+            void awaitUpgrade(tier);
+          },
+          modal: { ondismiss: () => setBusy(null) },
+        });
+        rzp.open();
+        return;
       }
+
+      // Fallback: Razorpay hosted page (leaves the dashboard).
+      if (res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+        return;
+      }
+      setError("Subscription created, but checkout could not be opened.");
+      setBusy(null);
     } catch (e) {
-      setError(
-        e instanceof ApiError ? e.message : "Could not start checkout.",
-      );
-    } finally {
+      setError(e instanceof ApiError ? e.message : "Could not start checkout.");
       setBusy(null);
     }
   }
@@ -60,6 +143,12 @@ export default function BillingPage() {
       {error && (
         <div className="mb-4">
           <ErrorNote message={error} />
+        </div>
+      )}
+
+      {status && (
+        <div className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          {status}
         </div>
       )}
 
