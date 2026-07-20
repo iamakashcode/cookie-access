@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, dprExportUrl } from "@/lib/api";
 import type { DprRequest } from "@/lib/types";
 import { Badge, type BadgeColor, Button, Card, ErrorNote, PageHeader } from "@/components/ui";
 
@@ -125,6 +125,30 @@ export default function RequestsPage() {
                       <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
                         <strong>Resolution:</strong> {r.resolutionNotes}
                       </p>
+                    )}
+
+                    {/* Access requests: assemble the data this platform holds. */}
+                    {r.type === "access" && (
+                      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2.5">
+                        <p className="mb-2 text-xs font-medium text-slate-600">
+                          This person&rsquo;s data held here — send it to fulfil the
+                          access request:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <a
+                            href={dprExportUrl(r.id, "pdf")}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-50"
+                          >
+                            ↓ Data package (PDF)
+                          </a>
+                          <a
+                            href={dprExportUrl(r.id, "json")}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                          >
+                            ↓ JSON
+                          </a>
+                        </div>
+                      </div>
                     )}
                   </div>
                   <div className="flex flex-none flex-col gap-2">

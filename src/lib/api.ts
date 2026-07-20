@@ -85,6 +85,19 @@ export function consentCsvUrl(params: Record<string, string>): string {
   return u.toString();
 }
 
+/** Direct link to an access request's "personal data" package (PDF or JSON). */
+export function dprExportUrl(requestId: string, format: "pdf" | "json"): string {
+  const origin =
+    BASE || (typeof window !== "undefined" ? window.location.origin : "");
+  const u = new URL(
+    `${origin}/api/admin/dpr/${encodeURIComponent(requestId)}/export`,
+  );
+  u.searchParams.set("format", format);
+  const siteId = getSelectedSiteId();
+  if (siteId) u.searchParams.set("siteId", siteId);
+  return u.toString();
+}
+
 /** Direct link to a single consent submission's PDF report (browser download). */
 export function consentEventPdfUrl(eventId: string): string {
   const origin =
