@@ -92,6 +92,23 @@ export async function createSubscription(tier: PaidTier): Promise<{
   return { subscriptionId: sub.id, shortUrl };
 }
 
+/**
+ * Cancel a subscription immediately so no further charges occur. Best-effort:
+ * an already-cancelled/completed subscription (or a transient error) must not
+ * block the caller, so failures are swallowed (but logged).
+ */
+export async function cancelSubscription(subscriptionId: string): Promise<void> {
+  try {
+    await razorpay().subscriptions.cancel(subscriptionId, false); // false = now, not at cycle end
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `razorpay: could not cancel ${subscriptionId}:`,
+      (err as Error).message,
+    );
+  }
+}
+
 /** Verify a Razorpay webhook signature. */
 export function verifyWebhook(rawBody: string, signature: string): boolean {
   const secret = env.RAZORPAY_WEBHOOK_SECRET;

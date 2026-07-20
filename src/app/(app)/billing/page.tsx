@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { BillingInfo } from "@/lib/types";
 import { useDomains } from "@/components/DomainContext";
-import { Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
 
 // Minimal shape of Razorpay Checkout we use.
 interface RazorpayOptions {
@@ -77,6 +77,29 @@ export default function BillingPage() {
     setStatus(
       "Payment received. Your plan will update here shortly once confirmed.",
     );
+  }
+
+  async function cancel() {
+    if (
+      !confirm(
+        `Cancel the ${info?.currentPlan} plan for "${current.name}"?\n\n` +
+          `The subscription and its auto-renewal are stopped, and the domain ` +
+          `returns to the Free plan. You can upgrade again anytime.`,
+      )
+    )
+      return;
+    setBusy("cancel");
+    setError(null);
+    setStatus(null);
+    try {
+      await api.post("/api/admin/billing/cancel");
+      await refresh();
+      setStatus("Your subscription has been cancelled. You're back on the Free plan.");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not cancel the subscription.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function subscribe(tier: "starter" | "growth") {
@@ -159,6 +182,29 @@ export default function BillingPage() {
             (<code>RAZORPAY_KEY_ID</code> / <code>RAZORPAY_KEY_SECRET</code>) to the
             server to enable paid plans. The plans below show what will be offered.
           </p>
+        </Card>
+      )}
+
+      {info.currentPlan !== "free" && (
+        <Card className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold capitalize text-slate-900">
+              {info.currentPlan} plan — active
+            </p>
+            <p className="text-sm text-slate-500">
+              {info.renewsAt
+                ? `Renews on ${new Date(info.renewsAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}.`
+                : "Auto-renews monthly."}{" "}
+              Cancelling stops future charges and returns this domain to Free.
+            </p>
+          </div>
+          <Button
+            variant="danger"
+            onClick={cancel}
+            disabled={busy === "cancel"}
+          >
+            {busy === "cancel" ? "Cancelling…" : "Cancel subscription"}
+          </Button>
         </Card>
       )}
 
