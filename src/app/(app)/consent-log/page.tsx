@@ -7,7 +7,7 @@ import type {
   ConsentPage,
   Purpose,
 } from "@/lib/types";
-import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Button, Card, ErrorNote, PageHero } from "@/components/ui";
 
 type View = "grouped" | "detailed";
 
@@ -67,7 +67,9 @@ export default function ConsentLogPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        tone="teal"
+        icon="≣"
         title="Consent records"
         subtitle="A permanent, append-only log of every consent given and withdrawn — your evidence trail."
         action={
@@ -84,14 +86,14 @@ export default function ConsentLogPage() {
       )}
 
       {/* View toggle */}
-      <div className="mb-4 inline-flex rounded-lg border border-slate-200 bg-white p-1">
+      <div className="mb-4 inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
         {(["grouped", "detailed"] as View[]).map((v) => (
           <button
             key={v}
             onClick={() => switchView(v)}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition ${
+            className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold capitalize transition ${
               view === v
-                ? "bg-brand-600 text-white"
+                ? "bg-gradient-to-br from-teal-500 to-emerald-600 text-white shadow-sm"
                 : "text-slate-600 hover:bg-slate-50"
             }`}
           >

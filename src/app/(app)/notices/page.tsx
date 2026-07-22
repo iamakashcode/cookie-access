@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { NoticeVersion } from "@/lib/types";
-import { Button, Card, CardTitle, ErrorNote, PageHeader } from "@/components/ui";
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorNote,
+  PageHero,
+  SectionHeader,
+} from "@/components/ui";
 
 const TEMPLATE = `Privacy Notice — [Your business name]
 
@@ -68,26 +75,29 @@ export default function NoticesPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        tone="sky"
+        icon="▤"
         title="Privacy notice"
         subtitle="The plain-language notice people see before consenting. Every time you publish, a new dated version is saved — old versions are never overwritten."
+        action={
+          <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+            {LANGUAGES.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => setLanguage(l.code)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                  language === l.code
+                    ? "bg-gradient-to-br from-sky-500 to-cyan-600 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+        }
       />
-
-      <div className="mb-4 inline-flex rounded-lg border border-slate-200 bg-white p-1">
-        {LANGUAGES.map((l) => (
-          <button
-            key={l.code}
-            onClick={() => setLanguage(l.code)}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-              language === l.code
-                ? "bg-brand-600 text-white"
-                : "text-slate-600 hover:bg-slate-50"
-            }`}
-          >
-            {l.label}
-          </button>
-        ))}
-      </div>
 
       {error && (
         <div className="mb-4">
@@ -105,14 +115,18 @@ export default function NoticesPage() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
           <Card>
-            <div className="mb-3 flex items-center justify-between">
-              <CardTitle>Notice text ({langLabel})</CardTitle>
-              {current && (
-                <span className="text-xs font-medium text-slate-400">
-                  Current: v{current.version}
-                </span>
-              )}
-            </div>
+            <SectionHeader
+              tone="sky"
+              icon="▤"
+              title={`Notice text (${langLabel})`}
+              right={
+                current ? (
+                  <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700">
+                    Current: v{current.version}
+                  </span>
+                ) : null
+              }
+            />
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -134,27 +148,38 @@ export default function NoticesPage() {
           </Card>
 
           <Card>
-            <div className="mb-3">
-              <CardTitle>Version history</CardTitle>
-            </div>
+            <SectionHeader tone="sky" icon="≣" title="Version history" />
             {history.length === 0 ? (
-              <p className="text-sm text-slate-400">No versions published yet.</p>
+              <EmptyState title="No versions published yet" />
             ) : (
-              <ul className="space-y-2">
-                {history.map((n) => (
-                  <li
-                    key={n.id}
-                    className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-sm"
-                  >
-                    <span className="font-medium text-slate-700">
-                      Version {n.version}
+              <ol className="relative space-y-3 before:absolute before:bottom-3 before:left-[13px] before:top-3 before:w-px before:bg-slate-200">
+                {history.map((n, i) => (
+                  <li key={n.id} className="relative flex items-center gap-3 pl-9">
+                    <span
+                      className={`absolute left-0 top-1/2 flex h-[27px] w-[27px] -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold ring-4 ring-white ${
+                        i === 0
+                          ? "bg-gradient-to-br from-sky-500 to-cyan-600 text-white"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      v{n.version}
                     </span>
-                    <span className="text-xs text-slate-400">
-                      {new Date(n.publishedAt).toLocaleDateString()}
-                    </span>
+                    <div className="flex flex-1 items-center justify-between">
+                      <span className="text-sm font-medium text-slate-700">
+                        Version {n.version}
+                        {i === 0 && (
+                          <span className="ml-2 text-[11px] font-semibold text-sky-600">
+                            live
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {new Date(n.publishedAt).toLocaleDateString()}
+                      </span>
+                    </div>
                   </li>
                 ))}
-              </ul>
+              </ol>
             )}
             <p className="mt-4 text-xs leading-relaxed text-slate-400">
               Keeping every version lets you show exactly what a person saw and

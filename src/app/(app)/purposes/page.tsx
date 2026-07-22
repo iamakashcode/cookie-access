@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Purpose } from "@/lib/types";
-import { Badge, Button, Card, CardTitle, ErrorNote, PageHeader } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  ErrorNote,
+  PageHero,
+  SectionHeader,
+} from "@/components/ui";
 
 interface FormState {
   id?: string;
@@ -84,7 +92,9 @@ export default function PurposesPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        tone="emerald"
+        icon="☑"
         title="Consent purposes"
         subtitle="The specific reasons you collect personal data. People consent to each one separately."
         action={
@@ -99,10 +109,12 @@ export default function PurposesPage() {
       )}
 
       {form && (
-        <Card className="mb-6">
-          <div className="mb-4">
-            <CardTitle>{form.id ? "Edit purpose" : "New purpose"}</CardTitle>
-          </div>
+        <Card className="mb-6 ring-1 ring-emerald-100">
+          <SectionHeader
+            tone="emerald"
+            icon={form.id ? "✎" : "+"}
+            title={form.id ? "Edit purpose" : "New purpose"}
+          />
           <label className="mb-1 block text-sm font-medium text-slate-600">
             Name
           </label>
@@ -173,8 +185,15 @@ export default function PurposesPage() {
       ) : (
         <div className="space-y-3">
           {active.map((p) => (
-            <Card key={p.id} className="flex items-start justify-between gap-4">
-              <div>
+            <Card
+              key={p.id}
+              className="flex items-start justify-between gap-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover"
+            >
+              <div className="flex min-w-0 gap-3.5">
+                <span className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-sm text-white shadow-sm">
+                  ☑
+                </span>
+                <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold text-slate-900">{p.name}</span>
                   {p.isEssential && <Badge color="neutral">Essential</Badge>}
@@ -188,6 +207,7 @@ export default function PurposesPage() {
                 <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
                   {p.description}
                 </p>
+                </div>
               </div>
               <div className="flex flex-none gap-2">
                 <Button
@@ -212,19 +232,29 @@ export default function PurposesPage() {
             </Card>
           ))}
           {active.length === 0 && (
-            <p className="text-sm text-slate-400">
-              No purposes yet. Add your first one to start collecting consent.
-            </p>
+            <EmptyState
+              icon="☑"
+              title="No purposes yet"
+              hint="Add your first purpose to start collecting consent on your site."
+              action={
+                <Button onClick={() => setForm({ ...EMPTY })}>
+                  + Add purpose
+                </Button>
+              }
+            />
           )}
 
           {inactive.length > 0 && (
             <>
-              <h3 className="pt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <h3 className="pt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Hidden purposes
               </h3>
               {inactive.map((p) => (
-                <Card key={p.id} className="opacity-60">
-                  <span className="font-medium text-slate-700">{p.name}</span>
+                <Card key={p.id} className="bg-slate-50/60 opacity-70">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-700">{p.name}</span>
+                    <Badge color="neutral">Hidden</Badge>
+                  </div>
                   <p className="mt-1 text-sm text-slate-500">{p.description}</p>
                 </Card>
               ))}

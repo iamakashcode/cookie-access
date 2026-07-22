@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { api, dprExportUrl } from "@/lib/api";
 import type { DprRequest } from "@/lib/types";
-import { Badge, type BadgeColor, Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import {
+  Badge,
+  type BadgeColor,
+  Button,
+  Card,
+  EmptyState,
+  ErrorNote,
+  PageHero,
+} from "@/components/ui";
 
 const TYPE_LABEL: Record<string, string> = {
   access: "Access data",
@@ -59,14 +67,16 @@ export default function RequestsPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        tone="amber"
+        icon="✎"
         title="Data-rights requests"
         subtitle="When someone asks to access, correct, or erase their data — or raises a grievance — it lands here with a due date."
         action={
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-lg px-3 py-2 text-sm font-medium"
           >
             <option value="">All statuses</option>
             <option value="open">Open</option>
@@ -85,33 +95,36 @@ export default function RequestsPage() {
       {loading ? (
         <p className="text-sm text-slate-400">Loading…</p>
       ) : requests.length === 0 ? (
-        <Card>
-          <p className="text-sm text-slate-400">
-            No requests yet. Share your rights portal so people can submit them —
-            you&rsquo;ll find the link on the Install page.
-          </p>
-        </Card>
+        <EmptyState
+          icon="✎"
+          title="No requests yet"
+          hint="Share your rights portal so people can submit them — the link is on the Install page. It's also built into the consent widget."
+        />
       ) : (
         <div className="space-y-3">
           {requests.map((r) => {
             const overdue = r.daysLeft !== null && r.daysLeft < 0;
             return (
-              <Card key={r.id}>
+              <Card
+                key={r.id}
+                className={`transition duration-200 hover:shadow-card-hover ${overdue ? "ring-1 ring-red-200" : ""}`}
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-xs text-white shadow-sm">
+                        ✎
+                      </span>
+                      <span className="font-semibold text-slate-900">
                         {TYPE_LABEL[r.type] ?? r.type}
                       </span>
                       <StatusBadge status={r.status} />
                       {r.status !== "resolved" && r.daysLeft !== null && (
-                        <span
-                          className={`text-xs font-medium ${overdue ? "text-red-600" : "text-slate-400"}`}
-                        >
+                        <Badge color={overdue ? "danger" : "neutral"}>
                           {overdue
                             ? `${-r.daysLeft} day(s) overdue`
                             : `due in ${r.daysLeft} day(s)`}
-                        </span>
+                        </Badge>
                       )}
                     </div>
                     <p className="mt-1 text-sm text-slate-500">

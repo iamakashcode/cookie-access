@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import type { Site } from "@/lib/types";
 import { widgetSnippet } from "@/lib/widget";
 import { useDomains } from "@/components/DomainContext";
-import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Button, Card, ErrorNote, PageHero } from "@/components/ui";
 
 export default function DomainsPage() {
   const { sites, current, selectSite, reloadSites } = useDomains();
@@ -106,7 +106,9 @@ export default function DomainsPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        tone="indigo"
+        icon="▤"
         title="Domains"
         subtitle="Each domain is a separate website with its own widget, purposes, notice, and records. A domain becomes Verified once its script goes live on your site."
         action={<Button onClick={() => setShowForm(true)}>+ Add domain</Button>}

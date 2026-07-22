@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { BannerTheme } from "@/lib/types";
 import { useDomains } from "@/components/DomainContext";
-import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Button, Card, ErrorNote, PageHero } from "@/components/ui";
 
 const DEFAULT: BannerTheme = {
   preset: "light",
@@ -96,7 +96,9 @@ export default function AppearancePage() {
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        tone="violet"
+        icon="◑"
         title="Banner design"
         subtitle={`Customize how the consent banner looks on "${current.name}". Changes apply to that domain's widget.`}
         action={<Button onClick={save}>Save design</Button>}

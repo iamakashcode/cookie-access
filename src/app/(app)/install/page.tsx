@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import type { Purpose } from "@/lib/types";
 import { useDomains } from "@/components/DomainContext";
 import { widgetSnippet } from "@/lib/widget";
-import { Card, PageHeader } from "@/components/ui";
+import { Card, PageHero, SectionHeader } from "@/components/ui";
 
 export default function InstallPage() {
   const { current, reloadSites } = useDomains();
@@ -56,7 +56,9 @@ export default function InstallPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        tone="fuchsia"
+        icon="❮❯"
         title="Install the widget"
         subtitle={`For the "${current.name}" domain. One line of code adds the consent banner and a permanent "Manage preferences" link to your website.`}
       />
@@ -80,9 +82,11 @@ export default function InstallPage() {
       )}
 
       <Card className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-slate-800">
-          Step 1 — add this to your site&rsquo;s <code>&lt;head&gt;</code>
-        </h2>
+        <SectionHeader
+          tone="fuchsia"
+          icon="1"
+          title="Add this to your site's <head>"
+        />
         <p className="mb-3 text-sm text-slate-500">
           Paste it as <strong>the first script inside <code>&lt;head&gt;</code></strong>,
           before any other scripts. That&rsquo;s important: to block trackers
@@ -102,9 +106,11 @@ export default function InstallPage() {
       </Card>
 
       <Card className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-slate-800">
-          Step 2 — block your trackers until consent
-        </h2>
+        <SectionHeader
+          tone="fuchsia"
+          icon="2"
+          title="Block your trackers until consent"
+        />
         <p className="mb-3 text-sm text-slate-500">
           The widget <strong>denies trackers by default</strong> and only lets
           them run once the visitor consents to the matching purpose.
@@ -149,9 +155,7 @@ export default function InstallPage() {
       </Card>
 
       <Card className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-slate-800">
-          Your data-rights portal
-        </h2>
+        <SectionHeader tone="amber" icon="✎" title="Your data-rights portal" />
         <p className="mb-2 text-sm text-slate-500">
           Share this link (e.g. in your privacy policy or website footer) so
           people can request access to, correction, or erasure of their data.
@@ -168,9 +172,7 @@ export default function InstallPage() {
       </Card>
 
       <Card>
-        <h2 className="mb-2 text-sm font-semibold text-slate-800">
-          Your public widget key
-        </h2>
+        <SectionHeader tone="indigo" icon="🔑" title="Your public widget key" />
         <p className="mb-2 text-sm text-slate-500">
           This key only identifies your account to the widget. It&rsquo;s safe to
           have in your website&rsquo;s code — it can&rsquo;t be used to sign in or

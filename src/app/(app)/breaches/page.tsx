@@ -3,7 +3,16 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { BreachIncident } from "@/lib/types";
-import { Badge, type BadgeColor, Button, Card, CardTitle, ErrorNote, PageHeader } from "@/components/ui";
+import {
+  Badge,
+  type BadgeColor,
+  Button,
+  Card,
+  EmptyState,
+  ErrorNote,
+  PageHero,
+  SectionHeader,
+} from "@/components/ui";
 
 export default function BreachesPage() {
   const [breaches, setBreaches] = useState<BreachIncident[]>([]);
@@ -73,7 +82,9 @@ export default function BreachesPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        tone="rose"
+        icon="⚠"
         title="Breach log"
         subtitle="An internal record of any data breach and the steps you took — for your own accountability under the DPDP Act."
         action={<Button onClick={() => setShowForm(true)}>+ Log an incident</Button>}
@@ -86,10 +97,8 @@ export default function BreachesPage() {
       )}
 
       {showForm && (
-        <Card className="mb-6">
-          <div className="mb-4">
-            <CardTitle>New incident</CardTitle>
-          </div>
+        <Card className="mb-6 ring-1 ring-rose-100">
+          <SectionHeader tone="rose" icon="⚠" title="New incident" />
           <label className="mb-1 block text-sm font-medium text-slate-600">
             When did you discover it?
           </label>
@@ -123,12 +132,11 @@ export default function BreachesPage() {
       {loading ? (
         <p className="text-sm text-slate-400">Loading…</p>
       ) : breaches.length === 0 ? (
-        <Card>
-          <p className="text-sm text-slate-400">
-            No incidents logged. That&rsquo;s a good thing — but if one happens,
-            record it here.
-          </p>
-        </Card>
+        <EmptyState
+          icon="✓"
+          title="No incidents logged"
+          hint="That's a good thing — but if a breach ever happens, record it here to keep your accountability trail."
+        />
       ) : (
         <div className="space-y-3">
           {breaches.map((b) => (

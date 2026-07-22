@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { BillingInfo, UsageInfo } from "@/lib/types";
 import { useDomains } from "@/components/DomainContext";
-import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Button, Card, ErrorNote, PageHero } from "@/components/ui";
 import { UsageBar } from "@/components/UsageBar";
 
 // Minimal shape of Razorpay Checkout we use.
@@ -156,7 +156,7 @@ export default function BillingPage() {
   if (error && !info)
     return (
       <>
-        <PageHeader title="Billing & plan" />
+        <PageHero tone="green" icon="◈" title="Billing & plan" />
         <ErrorNote message={error} />
       </>
     );
@@ -164,7 +164,9 @@ export default function BillingPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHero
+        tone="green"
+        icon="◈"
         title="Billing & plan"
         subtitle={`"${current.name}" is on the ${info.currentPlan} plan. Each domain is billed separately.`}
       />

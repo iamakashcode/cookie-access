@@ -24,6 +24,136 @@ export function PageHeader({
   );
 }
 
+export type Tone =
+  | "indigo"
+  | "emerald"
+  | "sky"
+  | "violet"
+  | "teal"
+  | "amber"
+  | "rose"
+  | "fuchsia"
+  | "green";
+
+/** Full class strings per tone (Tailwind purge-safe). */
+const TONE: Record<Tone, { wash: string; ring: string; chip: string; glow: string }> = {
+  indigo: { wash: "from-indigo-50", ring: "ring-indigo-100", chip: "from-indigo-500 to-violet-600", glow: "bg-indigo-400/20" },
+  emerald: { wash: "from-emerald-50", ring: "ring-emerald-100", chip: "from-emerald-500 to-teal-600", glow: "bg-emerald-400/20" },
+  sky: { wash: "from-sky-50", ring: "ring-sky-100", chip: "from-sky-500 to-cyan-600", glow: "bg-sky-400/20" },
+  violet: { wash: "from-violet-50", ring: "ring-violet-100", chip: "from-violet-500 to-purple-600", glow: "bg-violet-400/20" },
+  teal: { wash: "from-teal-50", ring: "ring-teal-100", chip: "from-teal-500 to-emerald-600", glow: "bg-teal-400/20" },
+  amber: { wash: "from-amber-50", ring: "ring-amber-100", chip: "from-amber-500 to-orange-600", glow: "bg-amber-400/20" },
+  rose: { wash: "from-rose-50", ring: "ring-rose-100", chip: "from-rose-500 to-red-600", glow: "bg-rose-400/20" },
+  fuchsia: { wash: "from-fuchsia-50", ring: "ring-fuchsia-100", chip: "from-fuchsia-500 to-pink-600", glow: "bg-fuchsia-400/20" },
+  green: { wash: "from-green-50", ring: "ring-green-100", chip: "from-green-500 to-emerald-600", glow: "bg-green-400/20" },
+};
+
+/**
+ * Page header band. Each page carries the accent of its sidebar section, so the
+ * dashboard reads as one coloured system instead of pages of plain text.
+ */
+export function PageHero({
+  title,
+  subtitle,
+  icon,
+  tone = "indigo",
+  action,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  icon?: React.ReactNode;
+  tone?: Tone;
+  action?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  const t = TONE[tone];
+  return (
+    <div
+      className={`relative mb-6 overflow-hidden rounded-2xl border border-white/60 bg-gradient-to-br via-white to-white p-6 shadow-card ring-1 ${t.wash} ${t.ring}`}
+    >
+      <div
+        className={`pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full blur-3xl ${t.glow}`}
+      />
+      <div className="relative flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-4">
+          {icon && (
+            <span
+              className={`flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-gradient-to-br text-base text-white shadow-sm ${t.chip}`}
+            >
+              {icon}
+            </span>
+          )}
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold leading-tight tracking-tight text-slate-900">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-500">
+                {subtitle}
+              </p>
+            )}
+          </div>
+        </div>
+        {action && <div className="flex flex-none items-center gap-2">{action}</div>}
+      </div>
+      {children && <div className="relative mt-4">{children}</div>}
+    </div>
+  );
+}
+
+/** Card section heading with a gradient icon chip. */
+export function SectionHeader({
+  title,
+  icon,
+  tone = "indigo",
+  right,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  tone?: Tone;
+  right?: React.ReactNode;
+}) {
+  const t = TONE[tone];
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center gap-2.5">
+        {icon && (
+          <span
+            className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br text-xs text-white shadow-sm ${t.chip}`}
+          >
+            {icon}
+          </span>
+        )}
+        <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
+      </div>
+      {right}
+    </div>
+  );
+}
+
+/** Consistent empty state — a dashed well instead of bare grey text. */
+export function EmptyState({
+  icon,
+  title,
+  hint,
+  action,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  hint?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-10 text-center">
+      {icon && <div className="mb-2 text-2xl opacity-40">{icon}</div>}
+      <p className="text-sm font-medium text-slate-600">{title}</p>
+      {hint && <p className="mx-auto mt-1 max-w-sm text-xs text-slate-400">{hint}</p>}
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  );
+}
+
 export function Card({
   children,
   className = "",
