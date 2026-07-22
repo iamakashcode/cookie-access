@@ -52,6 +52,48 @@ export interface DailyPoint {
   withdrawn: number;
 }
 
+/** Tiny trend line for a metric card — same 2px line + 10% wash as the big chart. */
+export function Sparkline({
+  values,
+  color,
+}: {
+  values: number[];
+  color: string;
+}) {
+  const w = 100;
+  const h = 26;
+  if (values.length < 2) return <div style={{ height: h }} />;
+  const max = Math.max(1, ...values);
+  const pt = (v: number, i: number): [number, number] => [
+    (i / (values.length - 1)) * w,
+    h - 2 - (v / max) * (h - 6),
+  ];
+  const pts = values.map(pt);
+  const line = pts
+    .map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`)
+    .join(" ");
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      className="w-full"
+      style={{ height: h }}
+      preserveAspectRatio="none"
+      aria-hidden
+    >
+      <path d={`${line} L${w},${h} L0,${h} Z`} fill={color} fillOpacity={0.12} />
+      <path
+        d={line}
+        fill="none"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
 /**
  * Consent activity over time — two series, so: legend always present, 2px
  * lines, 10% area wash, crosshair that snaps to the nearest day, and one
@@ -86,8 +128,12 @@ export function TrendChart({ data }: { data: DailyPoint[] }) {
     `${linePath(key)} L${x(n - 1)},${padT + plotH} L${x(0)},${padT + plotH} Z`;
 
   const ticks = [0, max / 2, max];
-  // Label roughly every 7th day so the axis never crowds.
-  const xTickIdx = data.map((_, i) => i).filter((i) => i % 7 === 0 || i === n - 1);
+  // Label roughly every 7th day, always ending on the last day — and drop any
+  // regular tick that would sit on top of that final label.
+  const xTickIdx = useMemo(() => {
+    const every = data.map((_, i) => i).filter((i) => i % 7 === 0);
+    return [...every.filter((i) => n - 1 - i >= 5), n - 1];
+  }, [data, n]);
 
   const total = data.reduce(
     (a, d) => ({ granted: a.granted + d.granted, withdrawn: a.withdrawn + d.withdrawn }),

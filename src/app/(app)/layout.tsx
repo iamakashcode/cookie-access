@@ -108,7 +108,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 {current.planTier} plan
               </span>
             </header>
-            <main className="app-scroll flex-1 overflow-y-auto bg-slate-50 px-8 py-8">
+            <main className="app-scroll flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100/70 px-8 py-8">
               {/* Remount page content when the selected domain changes → refetch. */}
               <div key={current.id} className="mx-auto max-w-6xl animate-fade-in">
                 {children}
