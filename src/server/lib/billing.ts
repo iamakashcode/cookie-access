@@ -25,19 +25,33 @@ export const PLANS: PlanInfo[] = [
     tier: "free",
     name: "Free",
     priceInr: 0,
-    features: ["1 website", "Unlimited purposes", "Consent records + CSV export"],
+    features: [
+      "5,000 visitors / month",
+      "Unlimited purposes",
+      "Consent records + CSV export",
+    ],
   },
   {
     tier: "starter",
     name: "Starter",
     priceInr: 999,
-    features: ["Everything in Free", "Data-rights portal", "Hindi + English notices"],
+    features: [
+      "50,000 visitors / month",
+      "Everything in Free",
+      "Data-rights portal",
+      "Hindi + English notices",
+    ],
   },
   {
     tier: "growth",
     name: "Growth",
     priceInr: 2999,
-    features: ["Everything in Starter", "Team members & roles", "Priority support"],
+    features: [
+      "500,000 visitors / month",
+      "Everything in Starter",
+      "Team members & roles",
+      "Priority support",
+    ],
   },
 ];
 

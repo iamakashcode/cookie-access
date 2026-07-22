@@ -39,6 +39,39 @@ function safeSet(key: string, value: string): void {
   }
 }
 
+/**
+ * True the first time it's called in a browser session (per tenant). Used to
+ * meter one "session" per visitor rather than one per page view, so counting
+ * traffic doesn't defeat the purposes cache.
+ */
+export function startOfSession(tenantKey: string): boolean {
+  try {
+    const k = `dpdp_sess_${tenantKey}`;
+    if (window.sessionStorage.getItem(k)) return false;
+    window.sessionStorage.setItem(k, "1");
+    return true;
+  } catch {
+    return false; // no sessionStorage (private mode) → don't double-count
+  }
+}
+
+/** Remember the last known over-limit answer for the rest of this session. */
+export function setSessionOverLimit(tenantKey: string, over: boolean): void {
+  try {
+    window.sessionStorage.setItem(`dpdp_over_${tenantKey}`, over ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getSessionOverLimit(tenantKey: string): boolean {
+  try {
+    return window.sessionStorage.getItem(`dpdp_over_${tenantKey}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
 function uuid(): string {
   if (window.crypto?.randomUUID) return window.crypto.randomUUID();
   // Fallback for older browsers.

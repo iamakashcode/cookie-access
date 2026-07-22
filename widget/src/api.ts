@@ -36,6 +36,18 @@ export function fetchPurposes(cfg: WidgetConfig): Promise<PurposesResponse | nul
   return request<PurposesResponse>(u.toString());
 }
 
+/**
+ * Count this visitor session against the domain's plan. Called once per browser
+ * session. Resolves to `true` when the domain is over its monthly allowance
+ * (the banner is then suppressed). Fails soft: on any error we do NOT block.
+ */
+export async function pingSession(cfg: WidgetConfig): Promise<boolean> {
+  const u = new URL(`${cfg.apiBase}/api/public/hit`);
+  u.searchParams.set("tenantKey", cfg.tenantKey);
+  const res = await request<{ over?: boolean }>(u.toString());
+  return res?.over === true;
+}
+
 export function fetchStatus(
   cfg: WidgetConfig,
   identifier: string,

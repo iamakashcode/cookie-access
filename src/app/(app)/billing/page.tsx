@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { BillingInfo } from "@/lib/types";
+import type { BillingInfo, UsageInfo } from "@/lib/types";
 import { useDomains } from "@/components/DomainContext";
 import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { UsageBar } from "@/components/UsageBar";
 
 // Minimal shape of Razorpay Checkout we use.
 interface RazorpayOptions {
@@ -43,6 +44,7 @@ function loadCheckout(): Promise<boolean> {
 export default function BillingPage() {
   const { current } = useDomains();
   const [info, setInfo] = useState<BillingInfo | null>(null);
+  const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -56,6 +58,10 @@ export default function BillingPage() {
 
   useEffect(() => {
     refresh();
+    api
+      .get<UsageInfo>("/api/admin/usage")
+      .then(setUsage)
+      .catch(() => {});
   }, []);
 
   // After a successful payment the plan is upgraded by the Razorpay webhook,
@@ -184,6 +190,8 @@ export default function BillingPage() {
           </p>
         </Card>
       )}
+
+      {usage && <UsageBar usage={usage} />}
 
       {info.currentPlan !== "free" && (
         <Card className="mb-6 flex flex-wrap items-center justify-between gap-3">

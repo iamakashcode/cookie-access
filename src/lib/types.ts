@@ -56,6 +56,16 @@ export interface BreachIncident {
   createdAt: string;
 }
 
+export interface UsageInfo {
+  period: string;
+  sessions: number;
+  limit: number;
+  percent: number;
+  warn: boolean;
+  over: boolean;
+  planTier: string;
+}
+
 export interface BillingPlan {
   tier: "free" | "starter" | "growth";
   name: string;

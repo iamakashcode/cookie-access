@@ -153,9 +153,27 @@ model Site {
   consentRecords ConsentRecord[]
   dprRequests    DPRRequest[]
   breaches       BreachIncident[]
+  usage          SiteUsage[]
 
   @@index([tenantId])
   @@map("sites")
+}
+
+/// Monthly traffic counter per domain. One row per (domain, month); `sessions`
+/// counts unique visitor sessions (the widget pings once per browser session),
+/// which is what the paid plans are metered on.
+model SiteUsage {
+  id        String   @id @default(cuid())
+  siteId    String
+  period    String // "YYYY-MM"
+  sessions  Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, period])
+  @@index([siteId])
+  @@map("site_usage")
 }
 
 // ---------------------------------------------------------------------------

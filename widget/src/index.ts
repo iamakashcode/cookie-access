@@ -2,6 +2,7 @@ import { readConfig } from "./config";
 import {
   fetchPurposes,
   fetchStatus,
+  pingSession,
   postConsent,
   postParentalConsent,
 } from "./api";
@@ -20,10 +21,13 @@ import {
   getActiveIdentity,
   getCachedConsent,
   getCachedPurposes,
+  getSessionOverLimit,
   hasChosen,
   setActiveIdentity,
   setCachedConsent,
   setCachedPurposes,
+  setSessionOverLimit,
+  startOfSession,
 } from "./storage";
 
 // Patch script creation to auto-block known trackers as early as possible.
@@ -158,8 +162,22 @@ async function init(): Promise<void> {
       onChange: (cb: () => void) => onConsentChange(cb),
     };
 
+    // Meter one session per browser session (not per page view) and learn
+    // whether this domain is over its plan allowance.
+    let overLimit = getSessionOverLimit(cfg.tenantKey);
+    if (startOfSession(cfg.tenantKey)) {
+      overLimit = await pingSession(cfg);
+      setSessionOverLimit(cfg.tenantKey, overLimit);
+    }
+
     if (hasChosen()) {
       // Returning visitor: no banner, just the persistent management launcher.
+      ui.showLauncher(openPreferences);
+    } else if (overLimit) {
+      // Domain has used up its monthly allowance: stop asking for new consent.
+      // Trackers stay blocked (deny-by-default), so the site never tracks
+      // without consent — and the launcher stays available so anyone who has
+      // already consented can still review or withdraw it.
       ui.showLauncher(openPreferences);
     } else {
       const defaults: Record<string, boolean> = {};

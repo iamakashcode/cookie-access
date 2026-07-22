@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { DashboardSummary } from "@/lib/types";
+import type { DashboardSummary, UsageInfo } from "@/lib/types";
 import { Card, CardTitle, PageHeader, StatTile } from "@/components/ui";
+import { UsageBar } from "@/components/UsageBar";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardSummary | null>(null);
+  const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -14,6 +16,10 @@ export default function DashboardPage() {
       .get<DashboardSummary>("/api/admin/dashboard/summary")
       .then(setData)
       .catch((e) => setError(e.message));
+    api
+      .get<UsageInfo>("/api/admin/usage")
+      .then(setUsage)
+      .catch(() => {});
   }, []);
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
@@ -27,6 +33,8 @@ export default function DashboardPage() {
         title="Overview"
         subtitle="A snapshot of the consent you've collected and any open requests."
       />
+
+      {usage && <UsageBar usage={usage} />}
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile
