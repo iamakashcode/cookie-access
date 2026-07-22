@@ -41,6 +41,38 @@ export function GET(req: NextRequest) {
       }),
     ]);
 
+    // Daily activity for the last 30 days (for the trend chart). Grouped in SQL
+    // so we never pull the whole ledger into memory.
+    const since = new Date();
+    since.setUTCDate(since.getUTCDate() - 29);
+    since.setUTCHours(0, 0, 0, 0);
+    const dailyRaw = await prisma.$queryRaw<
+      { day: Date; action: string; count: bigint }[]
+    >`
+      SELECT date_trunc('day', "timestamp") AS day, "action", COUNT(*) AS count
+      FROM consent_records
+      WHERE "siteId" = ${siteId} AND "timestamp" >= ${since}
+      GROUP BY 1, 2
+      ORDER BY 1
+    `;
+
+    // Fill every day in the window so the line has no gaps.
+    const byDay = new Map<string, { granted: number; withdrawn: number }>();
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(since);
+      d.setUTCDate(since.getUTCDate() + i);
+      byDay.set(d.toISOString().slice(0, 10), { granted: 0, withdrawn: 0 });
+    }
+    for (const r of dailyRaw) {
+      const key = new Date(r.day).toISOString().slice(0, 10);
+      const slot = byDay.get(key);
+      if (slot) {
+        if (r.action === "granted") slot.granted = Number(r.count);
+        else slot.withdrawn = Number(r.count);
+      }
+    }
+    const daily = [...byDay.entries()].map(([date, v]) => ({ date, ...v }));
+
     const purposeIds = [...new Set(byPurposeRaw.map((r) => r.purposeId))];
     const purposes = await prisma.consentPurpose.findMany({
       where: { id: { in: purposeIds } },
@@ -66,6 +98,7 @@ export function GET(req: NextRequest) {
         openDprRequests: openDprCount,
       },
       byPurpose,
+      daily,
       recentActivity: recent.map((r) => ({
         id: r.id,
         purpose: r.purpose.name,

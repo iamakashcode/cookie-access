@@ -159,6 +159,7 @@ export interface DashboardSummary {
     openDprRequests: number;
   };
   byPurpose: { purpose: string; granted: number; withdrawn: number }[];
+  daily: { date: string; granted: number; withdrawn: number }[];
   recentActivity: {
     id: string;
     purpose: string;

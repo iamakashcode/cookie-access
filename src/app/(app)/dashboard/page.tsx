@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import type { DashboardSummary, UsageInfo } from "@/lib/types";
 import { Card, CardTitle, PageHeader, StatTile } from "@/components/ui";
 import { UsageBar } from "@/components/UsageBar";
+import { PurposeBars, TrendChart } from "@/components/charts";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardSummary | null>(null);
@@ -25,7 +26,8 @@ export default function DashboardPage() {
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (!data) return <p className="text-sm text-slate-400">Loading…</p>;
 
-  const { totals, byPurpose, recentActivity } = data;
+  const { totals, byPurpose, recentActivity, daily } = data;
+  const last7 = (daily ?? []).slice(-7).reduce((a, d) => a + d.granted, 0);
 
   return (
     <>
@@ -64,38 +66,34 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Trend — the dashboard's centrepiece */}
+      <Card className="mb-6">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+          <CardTitle>Consent activity</CardTitle>
+          <span className="text-xs font-medium text-slate-400">
+            Last 30 days · {last7.toLocaleString("en-IN")} given in the last 7
+          </span>
+        </div>
+        {daily && daily.length > 0 ? (
+          <TrendChart data={daily} />
+        ) : (
+          <p className="py-10 text-center text-sm text-slate-400">
+            No activity yet. Install the widget to start collecting consent.
+          </p>
+        )}
+      </Card>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardTitle>Consent by purpose</CardTitle>
+          <div className="mb-4">
+            <CardTitle>Consent by purpose</CardTitle>
+          </div>
           {byPurpose.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-400">
+            <p className="text-sm text-slate-400">
               No consent recorded yet. Install the widget to start collecting.
             </p>
           ) : (
-            <div className="mt-5 space-y-4">
-              {byPurpose.map((p) => {
-                const total = p.granted + p.withdrawn || 1;
-                const pct = Math.round((p.granted / total) * 100);
-                return (
-                  <div key={p.purpose}>
-                    <div className="mb-1.5 flex items-center justify-between text-sm">
-                      <span className="font-medium text-slate-700">
-                        {p.purpose}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {p.granted} on · {p.withdrawn} off
-                      </span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-600 transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <PurposeBars rows={byPurpose} />
           )}
         </Card>
 
