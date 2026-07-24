@@ -65,10 +65,13 @@ export default function BillingPage() {
   }, []);
 
   // After a successful payment the plan is upgraded by the Razorpay webhook,
-  // which lands a moment later — poll a few times so the UI reflects it.
+  // which can land anywhere from a few seconds to a couple of minutes later.
+  // Poll for up to ~3 minutes (every 3s) so the UI reflects it without a manual
+  // reload, and keep showing progress the whole time.
   async function awaitUpgrade(tier: string) {
-    for (let i = 0; i < 8; i++) {
-      await new Promise((r) => setTimeout(r, 1500));
+    const deadline = Date.now() + 3 * 60 * 1000;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 3000));
       const next = await api
         .get<BillingInfo>("/api/admin/billing")
         .catch(() => null);
@@ -81,7 +84,9 @@ export default function BillingPage() {
       }
     }
     setStatus(
-      "Payment received. Your plan will update here shortly once confirmed.",
+      "Payment received — your plan will activate here as soon as the payment " +
+        "provider confirms it (usually within a couple of minutes). You can " +
+        "safely refresh this page.",
     );
   }
 
