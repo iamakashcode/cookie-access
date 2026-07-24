@@ -14,9 +14,14 @@ export function GET(req: NextRequest) {
 
     const row = await prisma.site.findUnique({
       where: { id: site.id },
-      select: { planTier: true },
+      select: { planTier: true, createdAt: true, planRenewsAt: true },
     });
-    const usage = await getUsage(site.id, row?.planTier ?? "free");
+    const usage = await getUsage({
+      id: site.id,
+      planTier: row?.planTier ?? "free",
+      createdAt: row?.createdAt ?? new Date(),
+      planRenewsAt: row?.planRenewsAt ?? null,
+    });
 
     return NextResponse.json({ ...usage, planTier: row?.planTier ?? "free" });
   });

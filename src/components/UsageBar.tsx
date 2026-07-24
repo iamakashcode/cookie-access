@@ -19,9 +19,20 @@ export function UsageBar({ usage }: { usage: UsageInfo }) {
   return (
     <Card className={usage.warn || usage.over ? `mb-6 ${tone.ring}` : "mb-6"}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <CardTitle>Traffic this month</CardTitle>
+        <CardTitle>Traffic this cycle</CardTitle>
         <span className="text-xs font-medium text-slate-400">
-          {usage.period} · {usage.planTier} plan
+          {new Date(`${usage.period}T00:00:00Z`).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            timeZone: "UTC",
+          })}
+          {" – "}
+          {new Date(`${usage.resetsOn}T00:00:00Z`).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            timeZone: "UTC",
+          })}{" "}
+          · {usage.planTier} plan
         </span>
       </div>
 
@@ -60,8 +71,14 @@ export function UsageBar({ usage }: { usage: UsageInfo }) {
         </p>
       ) : (
         <p className="mt-3 text-xs text-slate-400">
-          Counted once per visitor session, not per page view. Resets on the 1st
-          of each month.
+          Counted once per visitor session, not per page view. Your allowance
+          resets on{" "}
+          {new Date(`${usage.resetsOn}T00:00:00Z`).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "long",
+            timeZone: "UTC",
+          })}
+          .
         </p>
       )}
     </Card>

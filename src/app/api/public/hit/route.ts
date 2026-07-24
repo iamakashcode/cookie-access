@@ -25,13 +25,19 @@ export function GET(req: NextRequest) {
 
     const site = await prisma.site.findUnique({
       where: { apiKey: key },
-      select: { id: true, planTier: true, status: true },
+      select: {
+        id: true,
+        planTier: true,
+        status: true,
+        createdAt: true,
+        planRenewsAt: true,
+      },
     });
     if (!site || site.status !== "active") {
       throw new HttpError(403, "Invalid or inactive site key");
     }
 
-    const usage = await recordSession(site.id, site.planTier);
+    const usage = await recordSession(site);
     const res = corsJson({ over: usage.over });
     res.headers.set("Cache-Control", "no-store");
     return res;

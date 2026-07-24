@@ -58,6 +58,7 @@ export interface BreachIncident {
 
 export interface UsageInfo {
   period: string;
+  resetsOn: string;
   sessions: number;
   limit: number;
   percent: number;

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/server/prisma";
 import { handle, requireSuper } from "@/server/http";
 import { PLANS } from "@/server/lib/billing";
-import { currentPeriod, limitForTier } from "@/server/lib/usage";
+import { currentSessionsBySite, limitForTier } from "@/server/lib/usage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +18,6 @@ export function GET(req: NextRequest) {
     const since = new Date();
     since.setUTCDate(since.getUTCDate() - 29);
     since.setUTCHours(0, 0, 0, 0);
-    const period = currentPeriod();
 
     const [
       accounts,
@@ -32,7 +31,7 @@ export function GET(req: NextRequest) {
       subGroups,
       signupsRaw,
       consentDailyRaw,
-      usageRows,
+      usageSites,
       recentAccounts,
     ] = await Promise.all([
       prisma.tenant.count(),
@@ -52,9 +51,13 @@ export function GET(req: NextRequest) {
         SELECT date_trunc('day', "timestamp") AS day, "action", COUNT(*) AS count
         FROM consent_records WHERE "timestamp" >= ${since} GROUP BY 1,2 ORDER BY 1
       `,
-      prisma.siteUsage.findMany({
-        where: { period },
-        select: { sessions: true, site: { select: { planTier: true } } },
+      prisma.site.findMany({
+        select: {
+          id: true,
+          planTier: true,
+          createdAt: true,
+          planRenewsAt: true,
+        },
       }),
       prisma.tenant.findMany({
         orderBy: { createdAt: "desc" },
@@ -84,10 +87,11 @@ export function GET(req: NextRequest) {
     const mrr = billable.reduce((sum, s) => sum + priceOf(s.planTier), 0);
     const paidSites = billable.length;
 
-    // Traffic this month + how much of the sold allowance is being used.
-    const sessionsThisMonth = usageRows.reduce((s, r) => s + r.sessions, 0);
-    const allowance = usageRows.reduce(
-      (s, r) => s + limitForTier(r.site.planTier),
+    // Traffic in each domain's current billing cycle + total sold allowance.
+    const sessionsBySite = await currentSessionsBySite(usageSites);
+    const sessionsThisMonth = [...sessionsBySite.values()].reduce((s, n) => s + n, 0);
+    const allowance = usageSites.reduce(
+      (s, r) => s + limitForTier(r.planTier),
       0,
     );
 
