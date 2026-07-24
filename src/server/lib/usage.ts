@@ -81,8 +81,7 @@ export function periodFor(site: SiteForUsage, now: Date = new Date()): string {
 export interface UsageState {
   period: string; // cycle start (YYYY-MM-DD)
   resetsOn: string; // next cycle start (YYYY-MM-DD)
-  sessions: number; // this cycle (the metered number)
-  allTime?: number; // cumulative across every cycle (never resets)
+  sessions: number;
   limit: number;
   percent: number; // 0..100+ (can exceed 100)
   warn: boolean; // >= 80%
@@ -158,19 +157,9 @@ export async function getUsage(site: SiteForUsage): Promise<UsageState> {
   const now = new Date();
   const anchor = anchorDay(site);
   const period = cycleStart(anchor, now);
-  const [row, agg] = await Promise.all([
-    prisma.siteUsage.findUnique({
-      where: { siteId_period: { siteId: site.id, period } },
-      select: { sessions: true },
-    }),
-    // Cumulative visitors across every cycle — never resets.
-    prisma.siteUsage.aggregate({
-      where: { siteId: site.id },
-      _sum: { sessions: true },
-    }),
-  ]);
-  return {
-    ...shape(anchor, row?.sessions ?? 0, limitForTier(site.planTier), now),
-    allTime: agg._sum.sessions ?? 0,
-  };
+  const row = await prisma.siteUsage.findUnique({
+    where: { siteId_period: { siteId: site.id, period } },
+    select: { sessions: true },
+  });
+  return shape(anchor, row?.sessions ?? 0, limitForTier(site.planTier), now);
 }
