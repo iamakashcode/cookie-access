@@ -60,6 +60,7 @@ export interface UsageInfo {
   period: string;
   resetsOn: string;
   sessions: number;
+  allTime?: number;
   limit: number;
   percent: number;
   warn: boolean;

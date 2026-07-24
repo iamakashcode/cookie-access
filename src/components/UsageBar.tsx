@@ -46,6 +46,15 @@ export function UsageBar({ usage }: { usage: UsageInfo }) {
         <span className={`text-sm font-semibold ${tone.text}`}>{usage.percent}%</span>
       </div>
 
+      {usage.allTime != null && (
+        <div className="mb-2 text-xs text-slate-400">
+          <span className="font-semibold text-slate-500">
+            {usage.allTime.toLocaleString("en-IN")}
+          </span>{" "}
+          visitors all-time · resets each cycle, this total never does
+        </div>
+      )}
+
       <div className="h-2 overflow-hidden rounded-full bg-slate-100">
         <div className={`h-full rounded-full transition-all ${tone.bar}`} style={{ width: `${pct}%` }} />
       </div>
