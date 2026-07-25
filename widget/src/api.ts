@@ -64,7 +64,7 @@ export function postConsent(
   identifier: string,
   identifierType: IdentifierType,
   decisions: Decision[],
-): Promise<{ ok: boolean; recorded: number } | null> {
+): Promise<{ ok: boolean; recorded: number; receiptId?: string } | null> {
   return request(`${cfg.apiBase}/api/public/consent`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

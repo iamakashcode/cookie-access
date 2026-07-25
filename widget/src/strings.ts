@@ -21,6 +21,10 @@ export interface Strings {
   minorHint: string;
   minorToast: string;
   dataRights: string;
+  receiptTitle: string;
+  receiptRef: string;
+  receiptDownload: string;
+  receiptDone: string;
 }
 
 const en: Strings = {
@@ -47,6 +51,10 @@ const en: Strings = {
     "We'll email the parent/guardian to confirm before recording consent.",
   minorToast: "We've emailed the parent/guardian to confirm consent.",
   dataRights: "Your data rights (access, correct or delete your data) →",
+  receiptTitle: "Your consent receipt",
+  receiptRef: "Reference",
+  receiptDownload: "Download receipt",
+  receiptDone: "Done",
 };
 
 const hi: Strings = {
@@ -73,6 +81,10 @@ const hi: Strings = {
     "सहमति दर्ज करने से पहले हम माता-पिता/अभिभावक को पुष्टि के लिए ईमेल करेंगे।",
   minorToast: "हमने सहमति की पुष्टि के लिए माता-पिता/अभिभावक को ईमेल किया है।",
   dataRights: "आपके डेटा अधिकार (डेटा देखें, सुधारें या हटाएँ) →",
+  receiptTitle: "आपकी सहमति रसीद",
+  receiptRef: "संदर्भ",
+  receiptDownload: "रसीद डाउनलोड करें",
+  receiptDone: "हो गया",
 };
 
 export function getStrings(lang: string): Strings {

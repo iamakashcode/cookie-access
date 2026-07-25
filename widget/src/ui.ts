@@ -84,6 +84,77 @@ export class WidgetUI {
     setTimeout(() => toast.remove(), 5000);
   }
 
+  /**
+   * Consent receipt: a small overlay confirming exactly what the person chose,
+   * with a reference id and a downloadable copy — their proof of consent.
+   */
+  showReceipt(
+    r: { businessName: string; reference: string; items: { name: string; granted: boolean }[] },
+    t: Strings,
+  ): void {
+    this.remove(".overlay");
+    const overlay = this.el("div", "overlay");
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) this.remove(".overlay");
+    });
+    const modal = this.el("div", "modal");
+
+    const head = this.el("div", "modal-head");
+    head.appendChild(this.el("h2", undefined, t.receiptTitle));
+    head.appendChild(this.el("p", undefined, r.businessName));
+    modal.appendChild(head);
+
+    const body = this.el("div", "modal-body");
+    for (const it of r.items) {
+      const row = this.el("div", "receipt-row");
+      row.appendChild(this.el("span", `receipt-mark ${it.granted ? "on" : "off"}`, it.granted ? "✓" : "✕"));
+      row.appendChild(this.el("span", "receipt-name", it.name));
+      body.appendChild(row);
+    }
+    if (r.reference) {
+      body.appendChild(
+        this.el("div", "receipt-ref", `${t.receiptRef}: ${r.reference.slice(0, 8)}`),
+      );
+    }
+    modal.appendChild(body);
+
+    const foot = this.el("div", "modal-foot");
+    const download = this.el("button", "btn btn-secondary", t.receiptDownload) as HTMLButtonElement;
+    download.onclick = () => this.downloadReceipt(r, t);
+    const done = this.el("button", "btn btn-primary", t.receiptDone) as HTMLButtonElement;
+    done.onclick = () => this.remove(".overlay");
+    foot.append(download, done);
+    modal.appendChild(foot);
+
+    overlay.appendChild(modal);
+    this.root.appendChild(overlay);
+  }
+
+  private downloadReceipt(
+    r: { businessName: string; reference: string; items: { name: string; granted: boolean }[] },
+    t: Strings,
+  ): void {
+    const lines = [
+      `${t.receiptTitle} — ${r.businessName}`,
+      new Date().toLocaleString(),
+      "",
+      ...r.items.map((it) => `${it.granted ? "[x]" : "[ ]"} ${it.name}`),
+      "",
+      r.reference ? `${t.receiptRef}: ${r.reference}` : "",
+    ];
+    try {
+      const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "consent-receipt.txt";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      /* download blocked — the on-screen receipt is still shown */
+    }
+  }
+
   /** First-run consent banner with Accept all / Reject / Customize. */
   showBanner(data: UIData, cb: { onSave: SaveFn; onCustomize: () => void }): void {
     this.hideBanner();

@@ -86,6 +86,6 @@ export function POST(req: NextRequest) {
       recorded++;
     }
 
-    return corsJson({ ok: true, recorded });
+    return corsJson({ ok: true, recorded, receiptId: eventId });
   });
 }

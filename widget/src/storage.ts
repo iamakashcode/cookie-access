@@ -55,6 +55,27 @@ export function startOfSession(tenantKey: string): boolean {
   }
 }
 
+/**
+ * Remember that this browser belongs to a minor (parental-consent flow). Once
+ * set, the widget never activates behavioural/tracking scripts for them, even
+ * if a category was "granted" — §9 forbids tracking children.
+ */
+export function setMinorFlag(tenantKey: string): void {
+  try {
+    window.localStorage.setItem(`dpdp_minor_${tenantKey}`, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isMinor(tenantKey: string): boolean {
+  try {
+    return window.localStorage.getItem(`dpdp_minor_${tenantKey}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
 /** Remember the last known over-limit answer for the rest of this session. */
 export function setSessionOverLimit(tenantKey: string, over: boolean): void {
   try {

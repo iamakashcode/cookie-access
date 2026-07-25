@@ -94,6 +94,12 @@ export const css = `
 
 .notice-toggle { margin-top: 12px; }
 .rights-link { display: inline-block; margin-top: 14px; font-weight: 600; }
+.receipt-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.receipt-mark { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; font-size: 12px; font-weight: 700; flex: none; }
+.receipt-mark.on { background: rgba(16,163,16,0.12); color: #0a7a0a; }
+.receipt-mark.off { background: var(--dpdp-secondary-bg, #eee); color: var(--dpdp-muted, #888); }
+.receipt-name { font-size: 14px; color: var(--dpdp-text, #1a1a2e); }
+.receipt-ref { margin-top: 10px; font-size: 12px; color: var(--dpdp-muted, #9a9ab0); font-family: ui-monospace, monospace; }
 .notice-text { margin-top: 10px; font-size: 12px; color: var(--dpdp-muted, #55556e); white-space: pre-wrap; line-height: 1.5; background: var(--dpdp-secondary-bg, #fafafd); border: 1px solid var(--dpdp-border, #eee); border-radius: 10px; padding: 12px; max-height: 220px; overflow-y: auto; }
 .foot-note { font-size: 11px; color: var(--dpdp-muted, #9a9ab0); margin: 12px 22px 0; }
 

@@ -23,9 +23,11 @@ import {
   getCachedPurposes,
   getSessionOverLimit,
   hasChosen,
+  isMinor,
   setActiveIdentity,
   setCachedConsent,
   setCachedPurposes,
+  setMinorFlag,
   setSessionOverLimit,
   startOfSession,
 } from "./storage";
@@ -99,13 +101,27 @@ async function init(): Promise<void> {
     });
 
     // --- Tracker gating: map consent to category keys and apply it ---
+    // Behavioural / tracking categories are never activated for a minor (§9),
+    // even if the category was "granted".
+    const TRACKING = new Set([
+      "analytics",
+      "marketing",
+      "ads",
+      "advertising",
+      "retargeting",
+      "remarketing",
+      "social",
+      "pixel",
+    ]);
     const keyOf = (p: Purpose) => p.key || "";
     const managedKeys = resp.purposes.map(keyOf).filter(Boolean);
-    const grantedKeys = (decisions: Record<string, boolean>) =>
-      resp.purposes
+    const grantedKeys = (decisions: Record<string, boolean>) => {
+      const minor = isMinor(cfg.tenantKey);
+      return resp.purposes
         .filter((p) => p.isEssential || decisions[p.id])
         .map(keyOf)
-        .filter(Boolean);
+        .filter((k) => k && !(minor && TRACKING.has(k)));
+    };
     // Apply prior consent (from cache) immediately — deny-by-default otherwise.
     setConsent(managedKeys, grantedKeys(getCachedConsent()?.decisions ?? {}));
 
@@ -127,11 +143,26 @@ async function init(): Promise<void> {
       }));
 
       if (minor?.guardianEmail) {
-        // Route through parental consent — recorded only after the guardian verifies.
+        // Minor: remember it so tracking stays blocked, then route through
+        // parental consent (recorded only after the guardian verifies).
+        setMinorFlag(cfg.tenantKey);
+        setConsent(managedKeys, grantedKeys(decisions)); // re-apply with minor block
         await postParentalConsent(cfg, identity.identifier, minor.guardianEmail, arr);
         ui.showToast(t.minorToast);
       } else {
-        await postConsent(cfg, identity.identifier, identity.type, arr);
+        const res = await postConsent(cfg, identity.identifier, identity.type, arr);
+        // Give the person a consent receipt of what they just chose.
+        ui.showReceipt(
+          {
+            businessName: resp.businessName,
+            reference: res?.receiptId ?? "",
+            items: resp.purposes.map((p) => ({
+              name: p.name,
+              granted: p.isEssential ? true : !!decisions[p.id],
+            })),
+          },
+          t,
+        );
       }
     };
 
