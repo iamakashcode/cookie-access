@@ -18,6 +18,7 @@ const schema = z.object({
   sortOrder: z.number().int(),
   involvesMinors: z.boolean(),
   categoryKey: z.string().max(40),
+  retentionDays: z.number().int().min(1).max(3650).nullable(),
 });
 
 async function ownPurpose(siteId: string, id: string) {

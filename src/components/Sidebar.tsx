@@ -29,6 +29,7 @@ const NAV = [
   { href: "/consent-log", label: "Consent records", icon: "≣", tint: "teal" },
   { href: "/requests", label: "Data-rights requests", icon: "✎", tint: "amber" },
   { href: "/breaches", label: "Breach log", icon: "⚠", tint: "rose" },
+  { href: "/compliance", label: "DPDP compliance", icon: "✓", tint: "green" },
   { href: "/install", label: "Install widget", icon: "❮❯", tint: "fuchsia" },
   { href: "/billing", label: "Billing & plan", icon: "◈", tint: "green" },
 ] as const;

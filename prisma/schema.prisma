@@ -137,6 +137,20 @@ model Site {
   // Banner appearance (colours, layout, radius). Null → default theme.
   bannerTheme Json?
 
+  // DPDP compliance identity (published to data principals). §8(9) requires
+  // publishing a contact able to answer questions; §13 a grievance officer.
+  legalName       String? // registered name of the Data Fiduciary (the business)
+  businessAddress String?
+  grievanceName   String? // grievance officer / contact person
+  grievanceEmail  String?
+  grievancePhone  String?
+  dpoName         String? // Data Protection Officer (Significant Data Fiduciaries)
+  dpoEmail        String?
+
+  // Data-retention automation (§8(7)). Off by default — the business opts in.
+  autoEraseEnabled  Boolean @default(false)
+  retentionGraceDays Int    @default(30) // wait this long after withdrawal/expiry before erasing
+
   // Billing (per-domain). Null until this domain subscribes to a paid plan.
   planTier               PlanTier  @default(free)
   razorpayCustomerId     String?
@@ -154,9 +168,27 @@ model Site {
   dprRequests    DPRRequest[]
   breaches       BreachIncident[]
   usage          SiteUsage[]
+  processors     Processor[]
 
   @@index([tenantId])
   @@map("sites")
+}
+
+/// Third parties / data processors a domain shares personal data with. §11 gives
+/// data principals the right to know these, so they're disclosed in the notice
+/// and in every access-data package.
+model Processor {
+  id         String   @id @default(cuid())
+  siteId     String
+  name       String // the third party / processor
+  purpose    String // why data is shared with them
+  dataShared String? // what personal data is shared
+  createdAt  DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@map("processors")
 }
 
 /// Monthly traffic counter per domain. One row per (domain, month); `sessions`
@@ -193,6 +225,11 @@ model ConsentPurpose {
   categoryKey String  @default("")
 
   involvesMinors Boolean @default(false) // routes through parental consent
+
+  // Data-retention period for this purpose (days). Once a person's consent for
+  // this purpose is older than this, the grant is treated as expired for
+  // auto-erasure (§8(7)). Null = keep until consent is withdrawn.
+  retentionDays Int?
 
   createdAt DateTime @default(now())
 
@@ -301,6 +338,11 @@ model BreachIncident {
   id                      String       @id @default(cuid())
   siteId                  String
   description             String
+  // Details the DPDP Rules require in breach notifications (§8(6)).
+  affectedCount           Int? // how many data principals affected
+  dataCategories          String? // what kinds of personal data were exposed
+  consequences            String? // likely consequences for those affected
+  remediation             String? // measures taken / being taken to contain it
   discoveredAt            DateTime
   reportedToBoardAt       DateTime?
   affectedUsersNotifiedAt DateTime?

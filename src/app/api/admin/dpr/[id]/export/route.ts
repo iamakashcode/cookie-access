@@ -56,7 +56,7 @@ export function GET(req: NextRequest, { params }: Ctx) {
     }
 
     // Everything this person did on this domain (across all matched identities).
-    const [records, requests, siteRow] = await Promise.all([
+    const [records, requests, siteRow, processors] = await Promise.all([
       prisma.consentRecord.findMany({
         where: { siteId: site.id, dataPrincipalId: { in: principalIds } },
         orderBy: { timestamp: "desc" },
@@ -73,6 +73,11 @@ export function GET(req: NextRequest, { params }: Ctx) {
       prisma.site.findUnique({
         where: { id: site.id },
         select: { name: true, domain: true },
+      }),
+      prisma.processor.findMany({
+        where: { siteId: site.id },
+        orderBy: { createdAt: "asc" },
+        select: { name: true, purpose: true, dataShared: true },
       }),
     ]);
 
@@ -113,6 +118,11 @@ export function GET(req: NextRequest, { params }: Ctx) {
           status: r.status,
           createdAt: r.createdAt.toISOString(),
         })),
+        sharedWith: processors.map((p) => ({
+          name: p.name,
+          purpose: p.purpose,
+          dataShared: p.dataShared,
+        })),
       };
       return new NextResponse(JSON.stringify(payload, null, 2), {
         status: 200,
@@ -135,6 +145,7 @@ export function GET(req: NextRequest, { params }: Ctx) {
         status: r.status,
         createdAt: r.createdAt,
       })),
+      sharedWith: processors.map((p) => ({ name: p.name, purpose: p.purpose })),
     });
     return new NextResponse(Buffer.from(pdf), {
       status: 200,

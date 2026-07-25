@@ -168,6 +168,7 @@ export interface AccessReportData {
     ipAddress: string | null;
   }[];
   requests: { type: string; createdAt: Date; status: string }[];
+  sharedWith?: { name: string; purpose: string }[];
 }
 
 /**
@@ -289,6 +290,19 @@ export async function buildAccessReport(
         `${r.type}  -  ${r.status}  -  ${r.createdAt.toLocaleDateString("en-IN")}`,
         { size: 10 },
       );
+      space(15);
+    }
+  }
+
+  // Data shared with (§11)
+  if (data.sharedWith && data.sharedWith.length > 0) {
+    space(4);
+    rule();
+    space(20);
+    draw(`Data shared with (${data.sharedWith.length})`, { size: 11, font: bold });
+    space(18);
+    for (const s of data.sharedWith) {
+      draw(`${s.name}  —  ${s.purpose}`, { size: 10 });
       space(15);
     }
   }

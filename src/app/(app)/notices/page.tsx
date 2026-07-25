@@ -70,6 +70,22 @@ export default function NoticesPage() {
     }
   }
 
+  async function generate() {
+    setError(null);
+    setStatus(null);
+    try {
+      const { bodyText } = await api.get<{ bodyText: string }>(
+        `/api/admin/notices/generate?language=${language}`,
+      );
+      setBody(bodyText);
+      setStatus(
+        "Draft generated from your purposes and compliance settings. Review it, then publish.",
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   const current = history[0];
   const langLabel = LANGUAGES.find((l) => l.code === language)?.label ?? language;
 
@@ -133,18 +149,23 @@ export default function NoticesPage() {
               rows={18}
               className="w-full rounded-lg border border-slate-300 p-3 font-mono text-[13px] leading-relaxed outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
-            <div className="mt-3 flex items-center gap-3">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button variant="secondary" onClick={generate}>
+                ✨ Generate from my settings
+              </Button>
               <Button
                 onClick={publish}
                 disabled={!body.trim() || body === current?.bodyText}
               >
                 Publish new version
               </Button>
-              <span className="text-xs text-slate-400">
-                Visitors are shown the notice matching their language, falling
-                back to English.
-              </span>
             </div>
+            <p className="mt-2 text-xs text-slate-400">
+              &ldquo;Generate&rdquo; builds a complete, itemized notice (§5) from
+              your purposes, retention and grievance officer — review it, then
+              publish. Visitors see the notice matching their language, falling
+              back to English.
+            </p>
           </Card>
 
           <Card>

@@ -28,6 +28,7 @@ const schema = z.object({
   sortOrder: z.number().int().default(0),
   involvesMinors: z.boolean().default(false),
   categoryKey: z.string().max(40).optional(),
+  retentionDays: z.number().int().min(1).max(3650).nullable().optional(),
 });
 
 export function POST(req: NextRequest) {

@@ -20,6 +20,7 @@ interface FormState {
   isEssential: boolean;
   involvesMinors: boolean;
   categoryKey: string;
+  retentionDays: string; // "" = keep until withdrawn
 }
 
 const EMPTY: FormState = {
@@ -28,6 +29,7 @@ const EMPTY: FormState = {
   isEssential: false,
   involvesMinors: false,
   categoryKey: "",
+  retentionDays: "",
 };
 
 export default function PurposesPage() {
@@ -62,6 +64,9 @@ export default function PurposesPage() {
         description: form.description,
         isEssential: form.isEssential,
         involvesMinors: form.involvesMinors,
+        retentionDays: form.retentionDays.trim()
+          ? Number(form.retentionDays)
+          : null,
       };
       // Only send a category key if the owner set one (else the server derives it).
       if (form.categoryKey.trim()) payload.categoryKey = form.categoryKey.trim();
@@ -169,6 +174,25 @@ export default function PurposesPage() {
             to gate scripts. Use <code>analytics</code> / <code>marketing</code> to
             match the built-in auto-blocker.
           </p>
+          <label className="mb-1 block text-sm font-medium text-slate-600">
+            Keep data for{" "}
+            <span className="font-normal text-slate-400">
+              (retention, in days — for auto-erasure)
+            </span>
+          </label>
+          <input
+            type="number"
+            min={1}
+            value={form.retentionDays}
+            onChange={(e) => setForm({ ...form, retentionDays: e.target.value })}
+            placeholder="e.g. 365 — leave blank to keep until consent is withdrawn"
+            className="mb-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+          <p className="mb-4 text-xs text-slate-400">
+            After this many days, this purpose&rsquo;s consent counts as expired. If
+            auto-erasure is on (DPDP compliance page), people with no live consent
+            are erased (§8(7)).
+          </p>
           <div className="flex gap-2">
             <Button onClick={save} disabled={!form.name || !form.description}>
               Save
@@ -203,6 +227,9 @@ export default function PurposesPage() {
                       {p.categoryKey}
                     </Badge>
                   )}
+                  {p.retentionDays != null && (
+                    <Badge color="warning">keep {p.retentionDays}d</Badge>
+                  )}
                 </div>
                 <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
                   {p.description}
@@ -220,6 +247,8 @@ export default function PurposesPage() {
                       isEssential: p.isEssential,
                       involvesMinors: p.involvesMinors,
                       categoryKey: p.categoryKey,
+                      retentionDays:
+                        p.retentionDays != null ? String(p.retentionDays) : "",
                     })
                   }
                 >

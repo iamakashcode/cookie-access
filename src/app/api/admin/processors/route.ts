@@ -11,21 +11,18 @@ export function GET(req: NextRequest) {
   return handle(async () => {
     const admin = requireAdmin(req);
     const site = await requireSite(req, admin.tenantId);
-    const breaches = await prisma.breachIncident.findMany({
+    const processors = await prisma.processor.findMany({
       where: { siteId: site.id },
-      orderBy: { discoveredAt: "desc" },
+      orderBy: { createdAt: "asc" },
     });
-    return NextResponse.json({ breaches });
+    return NextResponse.json({ processors });
   });
 }
 
 const schema = z.object({
-  description: z.string().min(1).max(5000),
-  discoveredAt: z.string(),
-  affectedCount: z.number().int().min(0).nullable().optional(),
-  dataCategories: z.string().max(1000).nullable().optional(),
-  consequences: z.string().max(2000).nullable().optional(),
-  remediation: z.string().max(2000).nullable().optional(),
+  name: z.string().min(1).max(200),
+  purpose: z.string().min(1).max(500),
+  dataShared: z.string().max(500).optional().nullable(),
 });
 
 export function POST(req: NextRequest) {
@@ -33,25 +30,22 @@ export function POST(req: NextRequest) {
     const admin = requireAdmin(req);
     const site = await requireSite(req, admin.tenantId);
     const body = schema.parse(await req.json());
-    const breach = await prisma.breachIncident.create({
+    const processor = await prisma.processor.create({
       data: {
         siteId: site.id,
-        description: body.description,
-        discoveredAt: new Date(body.discoveredAt),
-        affectedCount: body.affectedCount ?? null,
-        dataCategories: body.dataCategories || null,
-        consequences: body.consequences || null,
-        remediation: body.remediation || null,
+        name: body.name,
+        purpose: body.purpose,
+        dataShared: body.dataShared || null,
       },
     });
     await writeAuditLog({
       tenantId: admin.tenantId,
       siteId: site.id,
       actorId: admin.adminId,
-      action: "breach.create",
-      targetTable: "breach_incidents",
-      targetId: breach.id,
+      action: "processor.create",
+      targetTable: "processors",
+      targetId: processor.id,
     });
-    return NextResponse.json({ breach }, { status: 201 });
+    return NextResponse.json({ processor }, { status: 201 });
   });
 }

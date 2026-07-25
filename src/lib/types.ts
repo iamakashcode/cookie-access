@@ -49,6 +49,10 @@ export interface DprRequest {
 export interface BreachIncident {
   id: string;
   description: string;
+  affectedCount: number | null;
+  dataCategories: string | null;
+  consequences: string | null;
+  remediation: string | null;
   discoveredAt: string;
   reportedToBoardAt: string | null;
   affectedUsersNotifiedAt: string | null;
@@ -104,6 +108,7 @@ export interface Purpose {
   sortOrder: number;
   involvesMinors: boolean;
   categoryKey: string;
+  retentionDays: number | null;
   createdAt: string;
 }
 

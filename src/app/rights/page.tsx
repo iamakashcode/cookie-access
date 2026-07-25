@@ -4,6 +4,12 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 
+interface Grievance {
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
 const TYPES = [
   { value: "access", label: "Access my data", hint: "Get a copy of the data held about me" },
   { value: "correction", label: "Correct my data", hint: "Fix something that's wrong" },
@@ -20,6 +26,7 @@ function RightsForm() {
   const subjectId = params.get("id") || "";
 
   const [businessName, setBusinessName] = useState("");
+  const [grievance, setGrievance] = useState<Grievance | null>(null);
   const [type, setType] = useState("access");
   const [email, setEmail] = useState("");
   const [details, setDetails] = useState("");
@@ -30,10 +37,13 @@ function RightsForm() {
   useEffect(() => {
     if (!tenantKey) return;
     api
-      .get<{ businessName: string }>(
+      .get<{ businessName: string; grievance: Grievance | null }>(
         `/api/public/tenant-info?tenantKey=${encodeURIComponent(tenantKey)}`,
       )
-      .then((r) => setBusinessName(r.businessName))
+      .then((r) => {
+        setBusinessName(r.businessName);
+        setGrievance(r.grievance);
+      })
       .catch(() => {});
   }, [tenantKey]);
 
@@ -145,7 +155,48 @@ function RightsForm() {
       >
         {state === "sending" ? "Sending…" : "Submit request"}
       </button>
+
+      <Escalation grievance={grievance} businessName={businessName} />
     </form>
+  );
+}
+
+/**
+ * Who to contact and how to escalate — required by the DPDP Act: a published
+ * grievance officer (§13), and the right to complain to the Data Protection
+ * Board of India if unsatisfied.
+ */
+function Escalation({
+  grievance,
+  businessName,
+}: {
+  grievance: Grievance | null;
+  businessName: string;
+}) {
+  return (
+    <div className="mt-5 space-y-3 border-t border-slate-100 pt-4 text-xs leading-relaxed text-slate-500">
+      {grievance && (grievance.email || grievance.name) && (
+        <div>
+          <p className="font-semibold text-slate-600">
+            Grievance Officer{businessName ? ` — ${businessName}` : ""}
+          </p>
+          {grievance.name && <p>{grievance.name}</p>}
+          {grievance.email && (
+            <p>
+              <a href={`mailto:${grievance.email}`} className="text-brand-700 hover:underline">
+                {grievance.email}
+              </a>
+            </p>
+          )}
+          {grievance.phone && <p>{grievance.phone}</p>}
+        </div>
+      )}
+      <p>
+        If your concern isn&rsquo;t resolved, you may escalate to the{" "}
+        <strong className="text-slate-600">Data Protection Board of India</strong>{" "}
+        under the Digital Personal Data Protection Act, 2023.
+      </p>
+    </div>
   );
 }
 
