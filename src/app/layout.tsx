@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Consent Manager — DPDP compliance assistant",
   description:
     "Operationalize consent management and record-keeping under India's DPDP Act.",
+  icons: { icon: "/icon.png", apple: "/icon.png" },
 };
 
 export default function RootLayout({

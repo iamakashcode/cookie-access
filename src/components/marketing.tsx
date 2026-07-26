@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 /** Thin gradient bar at the top that tracks scroll progress. */
@@ -354,9 +355,13 @@ export function LiveConsentDemo() {
       <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-400/30 via-violet-400/20 to-sky-400/20 blur-2xl" />
       <div className="animate-float-slow rounded-2xl border border-white/70 bg-white/90 p-5 shadow-pop backdrop-blur">
         <div className="mb-3 flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-600 text-xs text-white">
-            🍪
-          </span>
+          <Image
+            src="/icon.png"
+            alt="Cookie Access"
+            width={162}
+            height={162}
+            className="h-7 w-7 flex-none rounded-lg"
+          />
           <div className="text-sm font-semibold text-slate-900">
             We value your privacy
           </div>
