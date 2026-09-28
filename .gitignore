@@ -35,3 +35,6 @@ logs/
 # Misc
 coverage/
 .turbo/
+
+# TypeScript incremental build cache
+*.tsbuildinfo

@@ -8,7 +8,8 @@ import { HttpError } from "../http";
  * Account + domain provisioning.
  *  - registerTenant: sign up a new account with its first domain.
  *  - provisionSite: create an additional domain with starter data.
- * A domain always starts with a usable set of purposes + a draft notice.
+ * A domain starts with a usable set of purposes but no privacy notice: the
+ * owner writes and publishes one (the widget stays hidden until they do).
  */
 
 const STARTER_PURPOSES = [
@@ -38,19 +39,7 @@ const STARTER_PURPOSES = [
   },
 ];
 
-function starterNotice(name: string): string {
-  return `Privacy Notice — ${name}
-
-We collect and use your personal data only for the purposes listed below, and
-only with your consent (except where a purpose is essential to providing our
-service). You can review or withdraw your consent at any time using the
-"Manage preferences" link on our site.
-
-This is a starter template — please review and edit it to match how this site
-actually uses personal data. It does not constitute legal advice.`;
-}
-
-/** Create a domain (Site) with a fresh key + starter purposes + a draft notice. */
+/** Create a domain (Site) with a fresh key + starter purposes. */
 export async function provisionSite(
   tx: Prisma.TransactionClient,
   tenantId: string,
@@ -62,14 +51,6 @@ export async function provisionSite(
   });
   await tx.consentPurpose.createMany({
     data: STARTER_PURPOSES.map((p) => ({ ...p, siteId: site.id })),
-  });
-  await tx.noticeVersion.create({
-    data: {
-      siteId: site.id,
-      language: "en",
-      bodyText: starterNotice(name),
-      version: 1,
-    },
   });
   return site;
 }

@@ -6,7 +6,7 @@ import { handle, HttpError, requireSuper } from "@/server/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 const schema = z.object({
   status: z.enum(["active", "suspended"]).optional(),
@@ -14,8 +14,9 @@ const schema = z.object({
 });
 
 // PATCH /api/super/sites/:id — suspend/activate a domain or change its plan.
-export function PATCH(req: NextRequest, { params }: Ctx) {
+export function PATCH(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     const superAdmin = requireSuper(req);
     const body = schema.parse(await req.json());
     const existing = await prisma.site.findUnique({
@@ -26,7 +27,12 @@ export function PATCH(req: NextRequest, { params }: Ctx) {
 
     const site = await prisma.site.update({
       where: { id: existing.id },
-      data: { status: body.status, planTier: body.planTier },
+      data: {
+        status: body.status,
+        planTier: body.planTier,
+        // Mark platform suspensions so the owner can't just reactivate.
+        ...(body.status ? { platformSuspended: body.status === "suspended" } : {}),
+      },
       select: { id: true, status: true, planTier: true },
     });
 

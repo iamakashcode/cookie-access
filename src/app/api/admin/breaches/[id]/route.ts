@@ -7,7 +7,7 @@ import { writeAuditLog } from "@/server/lib/audit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 const schema = z.object({
   reportedToBoardAt: z.string().nullable().optional(),
@@ -15,8 +15,9 @@ const schema = z.object({
   status: z.enum(["open", "reported", "closed"]).optional(),
 });
 
-export function PATCH(req: NextRequest, { params }: Ctx) {
+export function PATCH(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     const admin = requireAdmin(req);
     const site = await requireSite(req, admin.tenantId);
     const existing = await prisma.breachIncident.findFirst({

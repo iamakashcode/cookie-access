@@ -7,6 +7,7 @@ import { Card, EmptyState, MetricCard, PageHero, SectionHeader } from "@/compone
 import { SERIES, TrendChart, type DailyPoint } from "@/components/charts";
 
 interface Stats {
+  setup: { key: string; label: string; ok: boolean; hint: string }[];
   totals: {
     accounts: number;
     sites: number;
@@ -57,6 +58,7 @@ export default function SuperAnalytics() {
   const signups30 = d.signups.reduce((a, s) => a + s.count, 0);
   const totalPlans = d.planMix.reduce((a, p) => a + p.count, 0) || 1;
   const usagePct = t.allowance ? Math.round((t.sessionsThisMonth / t.allowance) * 100) : 0;
+  const setupGaps = d.setup.filter((s) => !s.ok);
 
   return (
     <>
@@ -66,6 +68,35 @@ export default function SuperAnalytics() {
         title="Platform analytics"
         subtitle="How the whole platform is performing — accounts, traffic, consent volume and revenue across every customer."
       />
+
+      {/* Production configuration — reads the live server environment */}
+      <Card className="mb-6">
+        <SectionHeader
+          tone={setupGaps.length ? "amber" : "emerald"}
+          icon={setupGaps.length ? "!" : "✓"}
+          title="Platform setup"
+          right={
+            <span className="text-xs font-medium text-slate-400">
+              {setupGaps.length
+                ? `${setupGaps.length} item${setupGaps.length === 1 ? "" : "s"} need attention`
+                : "All set"}
+            </span>
+          }
+        />
+        <ul className="space-y-2">
+          {d.setup.map((s) => (
+            <li key={s.key} className="flex gap-3 text-sm">
+              <span className={s.ok ? "text-emerald-600" : "text-amber-600"}>
+                {s.ok ? "✓" : "⚠"}
+              </span>
+              <div>
+                <div className="font-medium text-slate-700">{s.label}</div>
+                {!s.ok && <div className="text-xs text-slate-500">{s.hint}</div>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
 
       {/* Money + scale headline */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

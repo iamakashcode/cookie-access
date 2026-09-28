@@ -36,6 +36,13 @@ export async function sendMail(mail: MailInput): Promise<void> {
       await transport.sendMail({ from: env.MAIL_FROM, ...mail });
       return;
     }
+    if (process.env.NODE_ENV === "production") {
+      // Never dump recipients or links (e.g. guardian verification) into
+      // production logs — just flag that email isn't configured.
+      // eslint-disable-next-line no-console
+      console.warn(`email NOT sent (SMTP_HOST not configured): "${mail.subject}"`);
+      return;
+    }
     // Console fallback (dev / unconfigured).
     // eslint-disable-next-line no-console
     console.log(

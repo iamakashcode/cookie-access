@@ -5,6 +5,7 @@ import { registerTenant } from "@/server/lib/onboarding";
 import { SESSION_COOKIE, signSession } from "@/server/lib/jwt";
 import { sessionCookieOptions } from "@/server/lib/cookies";
 import { writeAuditLog } from "@/server/lib/audit";
+import { enforceLimit, ipKey } from "@/server/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,12 @@ const schema = z.object({
 export function POST(req: NextRequest) {
   return handle(async () => {
     const input = schema.parse(await req.json());
+    await enforceLimit(
+      `register:ip:${ipKey(req)}`,
+      5,
+      60 * 60,
+      "Too many sign-ups from this network. Please try again later.",
+    );
     const email = input.email.toLowerCase();
 
     const { tenant, admin, site } = await registerTenant({

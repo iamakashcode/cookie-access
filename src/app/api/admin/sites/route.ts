@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/server/prisma";
-import { handle, requireAdmin } from "@/server/http";
+import { handle, requireActiveTenant, requireAdmin } from "@/server/http";
 import { provisionSite } from "@/server/lib/onboarding";
 import { writeAuditLog } from "@/server/lib/audit";
 import { shapeSite } from "@/server/lib/siteShape";
@@ -27,10 +27,11 @@ const createSchema = z.object({
   domain: z.string().max(255).optional(),
 });
 
-// POST /api/admin/sites — add a new domain (with starter purposes + notice).
+// POST /api/admin/sites — add a new domain (with starter purposes).
 export function POST(req: NextRequest) {
   return handle(async () => {
     const admin = requireAdmin(req);
+    await requireActiveTenant(admin.tenantId);
     const body = createSchema.parse(await req.json());
     const site = await prisma.$transaction((tx) =>
       provisionSite(tx, admin.tenantId, body.name, body.domain),

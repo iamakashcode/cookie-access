@@ -227,10 +227,16 @@ export default function DomainsPage() {
             {archived.map((s) => (
               <Card key={s.id} className="flex items-center justify-between opacity-70">
                 <span className="font-medium text-slate-700">{s.name}</span>
-                <div className="flex flex-none gap-2">
-                  <Button variant="secondary" onClick={() => reactivate(s.id)}>
-                    Reactivate
-                  </Button>
+                <div className="flex flex-none items-center gap-2">
+                  {s.platformSuspended ? (
+                    <span className="text-xs font-medium text-red-600">
+                      Suspended by the platform — contact support
+                    </span>
+                  ) : (
+                    <Button variant="secondary" onClick={() => reactivate(s.id)}>
+                      Reactivate
+                    </Button>
+                  )}
                   <Button variant="danger" onClick={() => remove(s)}>
                     Delete
                   </Button>

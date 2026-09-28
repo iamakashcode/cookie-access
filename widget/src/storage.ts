@@ -5,10 +5,12 @@ const CONSENT_KEY = "dpdp_consent_v1";
 const IDENTITY_KEY = "dpdp_identity_v1";
 const PURPOSES_KEY = "dpdp_purposes_v1";
 const PURPOSES_TTL_MS = 5 * 60 * 1000; // 5 min — repeat page views skip the fetch
+const CONSENT_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000; // re-ask after a year
 
 interface CachedConsent {
   updatedAt: number;
   decisions: Record<string, boolean>;
+  noticeId?: string; // the notice version this choice was made against
 }
 
 interface CachedPurposes {
@@ -130,26 +132,39 @@ export function setActiveIdentity(identifier: string, type: IdentifierType): voi
   safeSet(IDENTITY_KEY, JSON.stringify({ identifier, type }));
 }
 
+/** The visitor's saved choice, or null if none (or it's over a year old). */
 export function getCachedConsent(): CachedConsent | null {
   const raw = safeGet(CONSENT_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as CachedConsent;
+    const c = JSON.parse(raw) as CachedConsent;
+    return Date.now() - c.updatedAt > CONSENT_MAX_AGE_MS ? null : c;
   } catch {
     return null;
   }
 }
 
-export function setCachedConsent(decisions: Record<string, boolean>): void {
+export function setCachedConsent(
+  decisions: Record<string, boolean>,
+  noticeId: string,
+): void {
   safeSet(
     CONSENT_KEY,
-    JSON.stringify({ updatedAt: Date.now(), decisions } satisfies CachedConsent),
+    JSON.stringify({ updatedAt: Date.now(), decisions, noticeId } satisfies CachedConsent),
   );
 }
 
-/** Whether the visitor has already made a choice (so we don't re-prompt). */
-export function hasChosen(): boolean {
-  return getCachedConsent() !== null;
+/**
+ * Whether the visitor's saved choice still covers what the site asks today, so
+ * we don't re-prompt. A newer notice, a new optional purpose, or a choice more
+ * than a year old means asking again (earlier decisions stay applied meanwhile).
+ */
+export function hasValidChoice(noticeId: string, optionalPurposeIds: string[]): boolean {
+  const c = getCachedConsent(); // null once expired
+  if (!c) return false;
+  // Choices saved by older widget builds carry no noticeId — accept those.
+  if (c.noticeId && c.noticeId !== noticeId) return false;
+  return optionalPurposeIds.every((id) => id in c.decisions);
 }
 
 /**

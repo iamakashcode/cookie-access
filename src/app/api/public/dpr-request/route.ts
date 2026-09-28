@@ -6,6 +6,7 @@ import { upsertDataPrincipal } from "@/server/lib/principals";
 import { encrypt } from "@/server/lib/crypto";
 import { slaDeadlineFrom } from "@/server/lib/sla";
 import { notifyAdminsNewDpr } from "@/server/lib/notify";
+import { enforceLimit, ipKey } from "@/server/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +27,12 @@ export function POST(req: NextRequest) {
   return handlePublic(async () => {
     const body = schema.parse(await req.json());
     const site = await resolveSiteKey(body.tenantKey);
+    await enforceLimit(
+      `dpr:ip:${ipKey(req)}`,
+      10,
+      60 * 60,
+      "Too many requests from this network. Please try again later.",
+    );
 
     const principal = await upsertDataPrincipal(site.id, body.email, "email");
     // Only keep a device id that's different from the email (i.e. an anonymous

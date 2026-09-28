@@ -59,18 +59,52 @@ CREATE TABLE "sites" (
     "domain" TEXT,
     "apiKey" TEXT NOT NULL,
     "status" "EntityStatus" NOT NULL DEFAULT 'active',
+    "platformSuspended" BOOLEAN NOT NULL DEFAULT false,
     "verified" BOOLEAN NOT NULL DEFAULT false,
     "verifiedAt" TIMESTAMP(3),
     "verifiedOrigin" TEXT,
     "bannerTheme" JSONB,
+    "legalName" TEXT,
+    "businessAddress" TEXT,
+    "grievanceName" TEXT,
+    "grievanceEmail" TEXT,
+    "grievancePhone" TEXT,
+    "dpoName" TEXT,
+    "dpoEmail" TEXT,
+    "autoEraseEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "retentionGraceDays" INTEGER NOT NULL DEFAULT 30,
     "planTier" "PlanTier" NOT NULL DEFAULT 'free',
     "razorpayCustomerId" TEXT,
     "razorpaySubscriptionId" TEXT,
+    "pendingSubscriptionId" TEXT,
     "subscriptionStatus" TEXT,
     "planRenewsAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "sites_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "processors" (
+    "id" TEXT NOT NULL,
+    "siteId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "purpose" TEXT NOT NULL,
+    "dataShared" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "processors_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "site_usage" (
+    "id" TEXT NOT NULL,
+    "siteId" TEXT NOT NULL,
+    "period" TEXT NOT NULL,
+    "sessions" INTEGER NOT NULL DEFAULT 0,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "site_usage_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -84,6 +118,7 @@ CREATE TABLE "consent_purposes" (
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "categoryKey" TEXT NOT NULL DEFAULT '',
     "involvesMinors" BOOLEAN NOT NULL DEFAULT false,
+    "retentionDays" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "consent_purposes_pkey" PRIMARY KEY ("id")
@@ -139,6 +174,7 @@ CREATE TABLE "dpr_requests" (
     "status" "DprStatus" NOT NULL DEFAULT 'open',
     "slaDeadline" TIMESTAMP(3) NOT NULL,
     "resolutionNotes" TEXT,
+    "subjectRef" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "resolvedAt" TIMESTAMP(3),
 
@@ -150,6 +186,10 @@ CREATE TABLE "breach_incidents" (
     "id" TEXT NOT NULL,
     "siteId" TEXT NOT NULL,
     "description" TEXT NOT NULL,
+    "affectedCount" INTEGER,
+    "dataCategories" TEXT,
+    "consequences" TEXT,
+    "remediation" TEXT,
     "discoveredAt" TIMESTAMP(3) NOT NULL,
     "reportedToBoardAt" TIMESTAMP(3),
     "affectedUsersNotifiedAt" TIMESTAMP(3),
@@ -186,6 +226,15 @@ CREATE TABLE "super_admins" (
 );
 
 -- CreateTable
+CREATE TABLE "rate_limits" (
+    "key" TEXT NOT NULL,
+    "count" INTEGER NOT NULL DEFAULT 0,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "rate_limits_pkey" PRIMARY KEY ("key")
+);
+
+-- CreateTable
 CREATE TABLE "audit_logs" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
@@ -212,6 +261,15 @@ CREATE UNIQUE INDEX "sites_apiKey_key" ON "sites"("apiKey");
 
 -- CreateIndex
 CREATE INDEX "sites_tenantId_idx" ON "sites"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "processors_siteId_idx" ON "processors"("siteId");
+
+-- CreateIndex
+CREATE INDEX "site_usage_siteId_idx" ON "site_usage"("siteId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "site_usage_siteId_period_key" ON "site_usage"("siteId", "period");
 
 -- CreateIndex
 CREATE INDEX "consent_purposes_siteId_idx" ON "consent_purposes"("siteId");
@@ -256,6 +314,9 @@ CREATE INDEX "parental_consents_siteId_idx" ON "parental_consents"("siteId");
 CREATE UNIQUE INDEX "super_admins_email_key" ON "super_admins"("email");
 
 -- CreateIndex
+CREATE INDEX "rate_limits_expiresAt_idx" ON "rate_limits"("expiresAt");
+
+-- CreateIndex
 CREATE INDEX "audit_logs_tenantId_timestamp_idx" ON "audit_logs"("tenantId", "timestamp");
 
 -- AddForeignKey
@@ -263,6 +324,12 @@ ALTER TABLE "admin_users" ADD CONSTRAINT "admin_users_tenantId_fkey" FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE "sites" ADD CONSTRAINT "sites_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "processors" ADD CONSTRAINT "processors_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "sites"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "site_usage" ADD CONSTRAINT "site_usage_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "sites"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "consent_purposes" ADD CONSTRAINT "consent_purposes_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "sites"("id") ON DELETE CASCADE ON UPDATE CASCADE;

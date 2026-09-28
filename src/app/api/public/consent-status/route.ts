@@ -14,6 +14,11 @@ export const dynamic = "force-dynamic";
 export const OPTIONS = corsPreflight;
 
 // GET /api/public/consent-status?tenantKey=...&identifier=...
+//
+// Only answers for anonymous widget device ids (random UUIDs that only that
+// browser knows). The site key is public, so answering for an email or phone
+// number would let anyone look up a person's consent choices; for those the
+// widget uses its local copy instead.
 export function GET(req: NextRequest) {
   return handlePublic(async () => {
     const url = new URL(req.url);
@@ -27,7 +32,8 @@ export function GET(req: NextRequest) {
       select: { id: true, name: true, description: true, isEssential: true },
     });
 
-    const principal = await findDataPrincipal(site.id, identifier);
+    const found = await findDataPrincipal(site.id, identifier);
+    const principal = found?.identifierType === "anon" ? found : null;
     const stateByPurpose = new Map<string, { action: string; at: Date }>();
     if (principal) {
       const records = await prisma.consentRecord.findMany({

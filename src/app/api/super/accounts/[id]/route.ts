@@ -6,7 +6,7 @@ import { handle, HttpError, requireSuper } from "@/server/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 const schema = z.object({ status: z.enum(["active", "suspended"]) });
 
@@ -14,8 +14,9 @@ const schema = z.object({ status: z.enum(["active", "suspended"]) });
  * PATCH /api/super/accounts/:id — suspend or reactivate a whole account.
  * Suspending cascades to the account's domains so their widgets stop serving.
  */
-export function PATCH(req: NextRequest, { params }: Ctx) {
+export function PATCH(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     requireSuper(req);
     const { status } = schema.parse(await req.json());
 

@@ -34,6 +34,6 @@ export function findDataPrincipal(siteId: string, identifier: string) {
     where: {
       siteId_identifierHash: { siteId, identifierHash: blindIndex(identifier) },
     },
-    select: { id: true },
+    select: { id: true, identifierType: true },
   });
 }

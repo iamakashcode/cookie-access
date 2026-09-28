@@ -23,13 +23,16 @@ export function POST(req: NextRequest) {
 
     const current = await prisma.site.findUnique({
       where: { id: site.id },
-      select: { razorpaySubscriptionId: true, planTier: true },
+      select: { razorpaySubscriptionId: true, pendingSubscriptionId: true, planTier: true },
     });
     if (!current?.razorpaySubscriptionId || current.planTier === "free") {
       throw new HttpError(400, "This domain has no active subscription to cancel.");
     }
 
     await cancelSubscription(current.razorpaySubscriptionId);
+    if (current.pendingSubscriptionId) {
+      await cancelSubscription(current.pendingSubscriptionId); // unfinished plan change
+    }
 
     // Drop to free and clear the subscription. Clearing the id first means the
     // subsequent `subscription.cancelled` webhook finds no domain and is a no-op
@@ -40,6 +43,7 @@ export function POST(req: NextRequest) {
         planTier: "free",
         subscriptionStatus: "cancelled",
         razorpaySubscriptionId: null,
+        pendingSubscriptionId: null,
         planRenewsAt: null,
       },
     });

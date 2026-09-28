@@ -33,28 +33,42 @@ export function POST(req: NextRequest) {
 
     const { tier } = schema.parse(await req.json());
 
-    // Any subscription this domain already had — we cancel it below so the
-    // customer is never billed for two plans at once (one active sub per domain).
     const before = await prisma.site.findUnique({
       where: { id: site.id },
-      select: { razorpaySubscriptionId: true },
+      select: { razorpaySubscriptionId: true, pendingSubscriptionId: true, planTier: true },
     });
-    const previousSubId = before?.razorpaySubscriptionId ?? null;
+    const currentSubId = before?.razorpaySubscriptionId ?? null;
+    const pendingSubId = before?.pendingSubscriptionId ?? null;
+    const onPaidPlan = !!currentSubId && before?.planTier !== "free";
 
     const { subscriptionId, shortUrl } = await createSubscription(tier);
 
-    // Point the domain at the NEW subscription first. This must happen before
-    // cancelling the old one: cancelling fires a `subscription.cancelled`
-    // webhook for the old id, and the handler looks the domain up by
-    // razorpaySubscriptionId — now the new id — so the old cancellation can't
-    // downgrade the domain we just upgraded.
-    await prisma.site.update({
-      where: { id: site.id },
-      data: { razorpaySubscriptionId: subscriptionId, subscriptionStatus: "created" },
-    });
-
-    if (previousSubId && previousSubId !== subscriptionId) {
-      await cancelSubscription(previousSubId);
+    // DB first, cancellations after: a cancelled subscription fires a webhook,
+    // and by then its id no longer points at this domain, so it can't downgrade it.
+    let cancelled: string[];
+    if (onPaidPlan) {
+      // Plan change: the paid subscription keeps running until the new one is
+      // paid for (the webhook then switches over and cancels the old one). An
+      // abandoned checkout leaves the current plan exactly as it was.
+      await prisma.site.update({
+        where: { id: site.id },
+        data: { pendingSubscriptionId: subscriptionId },
+      });
+      cancelled = pendingSubId ? [pendingSubId] : []; // an earlier unfinished change
+    } else {
+      // Nothing paid to protect: this becomes the domain's subscription.
+      await prisma.site.update({
+        where: { id: site.id },
+        data: {
+          razorpaySubscriptionId: subscriptionId,
+          pendingSubscriptionId: null,
+          subscriptionStatus: "created",
+        },
+      });
+      cancelled = [currentSubId, pendingSubId].filter((id): id is string => !!id);
+    }
+    for (const id of cancelled) {
+      if (id !== subscriptionId) await cancelSubscription(id);
     }
 
     await writeAuditLog({
@@ -62,7 +76,7 @@ export function POST(req: NextRequest) {
       siteId: site.id,
       actorId: admin.adminId,
       action: "billing.subscribe",
-      metadata: { tier, subscriptionId, cancelledPrevious: previousSubId },
+      metadata: { tier, subscriptionId, planChange: onPaidPlan, cancelled },
     });
 
     // keyId + subscriptionId drive the embedded Razorpay Checkout (popup over

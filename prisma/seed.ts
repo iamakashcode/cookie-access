@@ -6,6 +6,10 @@ import bcrypt from "bcryptjs";
  * Seed one demo ACCOUNT with TWO domains, so multi-domain isolation is visible
  * immediately. Idempotent-ish: upserts by unique keys; notices/purposes are
  * only created when absent.
+ *
+ * Both parts are opt-in, because the demo passwords are public (README):
+ *   SEED_DEMO=true                     → the demo account (dev databases only)
+ *   SUPERADMIN_EMAIL + SUPERADMIN_PASSWORD → create/reset the super-admin
  */
 
 const prisma = new PrismaClient();
@@ -17,8 +21,8 @@ const DEMO_ADMIN_PASSWORD = "demo-password-123";
 const STORE_KEY = "dpdp_pk_demo_0123456789abcdef";
 const BLOG_KEY = "dpdp_pk_demo_blog_000000000000";
 
-const SUPER_EMAIL = process.env.SUPERADMIN_EMAIL || "super@demo.test";
-const SUPER_PASSWORD = process.env.SUPERADMIN_PASSWORD || "super-password-123";
+const SUPER_EMAIL = process.env.SUPERADMIN_EMAIL;
+const SUPER_PASSWORD = process.env.SUPERADMIN_PASSWORD;
 
 function noticeFor(business: string, lines: string): string {
   return `Privacy Notice — ${business}
@@ -96,7 +100,7 @@ async function ensureSite(
   return site;
 }
 
-async function main() {
+async function seedDemo() {
   const passwordHash = await bcrypt.hash(DEMO_ADMIN_PASSWORD, 10);
 
   // Find the account by its owner admin email (globally unique), else create.
@@ -189,16 +193,9 @@ async function main() {
     ),
   );
 
-  const superHash = await bcrypt.hash(SUPER_PASSWORD, 10);
-  await prisma.superAdmin.upsert({
-    where: { email: SUPER_EMAIL.toLowerCase() },
-    update: { passwordHash: superHash },
-    create: { email: SUPER_EMAIL.toLowerCase(), passwordHash: superHash },
-  });
-
   // eslint-disable-next-line no-console
   console.log(`
-✓ Seed complete.
+✓ Demo account seeded.
 
   Account:        Demo Company
   Admin login:    ${DEMO_ADMIN_EMAIL}
@@ -208,10 +205,39 @@ async function main() {
     • Demo Store  key=${store.apiKey}
     • Demo Blog   key=${blog.apiKey}
 
-  Super-admin:    ${SUPER_EMAIL} / ${SUPER_PASSWORD}   (login at /super/login)
-
   The widget demo page uses the Demo Store key automatically.
 `);
+}
+
+async function seedSuperAdmin() {
+  if (!SUPER_EMAIL || !SUPER_PASSWORD) {
+    // eslint-disable-next-line no-console
+    console.log("• Super-admin skipped (set SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD).");
+    return;
+  }
+  if (SUPER_PASSWORD.length < 12) {
+    throw new Error("SUPERADMIN_PASSWORD must be at least 12 characters.");
+  }
+  const superHash = await bcrypt.hash(SUPER_PASSWORD, 10);
+  await prisma.superAdmin.upsert({
+    where: { email: SUPER_EMAIL.toLowerCase() },
+    update: { passwordHash: superHash },
+    create: { email: SUPER_EMAIL.toLowerCase(), passwordHash: superHash },
+  });
+  // eslint-disable-next-line no-console
+  console.log(`✓ Super-admin ready: ${SUPER_EMAIL} (login at /super/login)`);
+}
+
+async function main() {
+  if (process.env.SEED_DEMO === "true") {
+    await seedDemo();
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(
+      "• Demo account skipped (set SEED_DEMO=true — development databases only; its password is public).",
+    );
+  }
+  await seedSuperAdmin();
 }
 
 main()

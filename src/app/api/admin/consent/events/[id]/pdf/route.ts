@@ -7,7 +7,7 @@ import { buildConsentReport } from "@/server/lib/consentPdf";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 function safeDecrypt(enc: string): string {
   try {
@@ -18,8 +18,9 @@ function safeDecrypt(enc: string): string {
 }
 
 // GET /api/admin/consent/events/:id/pdf — one submission as a downloadable PDF.
-export function GET(req: NextRequest, { params }: Ctx) {
+export function GET(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     const admin = requireAdmin(req);
     const site = await requireSite(req, admin.tenantId);
     const gid = params.id;

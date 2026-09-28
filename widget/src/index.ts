@@ -21,8 +21,9 @@ import {
   getActiveIdentity,
   getCachedConsent,
   getCachedPurposes,
+  getDeviceId,
   getSessionOverLimit,
-  hasChosen,
+  hasValidChoice,
   isMinor,
   setActiveIdentity,
   setCachedConsent,
@@ -75,15 +76,18 @@ async function init(): Promise<void> {
     if (!fetched) fetched = await fetchPurposes(cfg);
     if (!fetched || fetched.purposes.length === 0) return; // API down / empty → no-op
     if (!fromCache) setCachedPurposes(cfg.tenantKey, cfg.language, fetched);
+    // No published notice yet → consent can't be informed (or recorded), so
+    // show nothing. Trackers stay blocked: `ready` never flips.
+    if (!fetched.notice) return;
     const resp = fetched; // const binding → narrowing persists inside closures
+    const noticeId = fetched.notice.id;
 
     // The rights portal is served by the API origin (not the customer's site).
-    // Carry this browser's identity so an access request can be matched to the
-    // consent recorded here (which is anonymous by default).
-    const who = getActiveIdentity();
+    // Carry this browser's anonymous device id so an access request can be
+    // matched to consent recorded here. Never an email — URLs end up in logs.
     const rightsUrl =
       `${cfg.apiBase}/rights?k=${encodeURIComponent(cfg.tenantKey)}` +
-      `&id=${encodeURIComponent(who.identifier)}`;
+      `&id=${encodeURIComponent(getDeviceId())}`;
     const ui = new WidgetUI(cfg.language, resolveTheme(resp.theme), rightsUrl);
     ui.mount();
     const t = getStrings(cfg.language);
@@ -130,7 +134,7 @@ async function init(): Promise<void> {
       minor?: { guardianEmail: string },
     ): Promise<void> => {
       // Optimistically reflect the choice; the network call fails soft.
-      setCachedConsent(decisions);
+      setCachedConsent(decisions, noticeId);
       setConsent(managedKeys, grantedKeys(decisions)); // activate/re-block trackers
       ui.hideBanner();
       ui.hideModal();
@@ -170,8 +174,11 @@ async function init(): Promise<void> {
       const identity = getActiveIdentity();
       const granted: Record<string, boolean> = {};
 
-      // Prefer the server's current state; fall back to local cache, then defaults.
-      const status = await fetchStatus(cfg, identity.identifier);
+      // Prefer the server's current state; fall back to local cache, then
+      // defaults. The server only answers for anonymous device ids, so an
+      // identified visitor's email/phone is never put in a URL.
+      const status =
+        identity.type === "anon" ? await fetchStatus(cfg, identity.identifier) : null;
       if (status) {
         status.purposes.forEach((p) => (granted[p.id] = p.granted));
       } else {
@@ -201,7 +208,8 @@ async function init(): Promise<void> {
       setSessionOverLimit(cfg.tenantKey, overLimit);
     }
 
-    if (hasChosen()) {
+    const optionalIds = resp.purposes.filter((p) => !p.isEssential).map((p) => p.id);
+    if (hasValidChoice(noticeId, optionalIds)) {
       // Returning visitor: no banner, just the persistent management launcher.
       ui.showLauncher(openPreferences);
     } else if (overLimit) {
@@ -211,8 +219,11 @@ async function init(): Promise<void> {
       // already consented can still review or withdraw it.
       ui.showLauncher(openPreferences);
     } else {
+      // Opt-in: optional purposes start off, except ones this visitor already
+      // chose (when re-asking after a notice/purpose change).
+      const prior = getCachedConsent()?.decisions ?? {};
       const defaults: Record<string, boolean> = {};
-      resp.purposes.forEach((p) => (defaults[p.id] = p.isEssential)); // opt-in
+      resp.purposes.forEach((p) => (defaults[p.id] = p.isEssential || prior[p.id] === true));
       ui.showBanner(buildData(defaults), {
         onSave: save,
         onCustomize: () => ui.showModal(buildData(defaults), { onSave: save }),

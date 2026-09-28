@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/server/prisma";
 import { handle, requireAdmin, requireSite } from "@/server/http";
 import { writeAuditLog } from "@/server/lib/audit";
+import { latestNotice as findLiveNotice } from "@/server/lib/notices";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,7 +62,7 @@ export function GET(req: NextRequest) {
         },
       }),
       prisma.consentPurpose.count({ where: { siteId: site.id, isActive: true } }),
-      prisma.noticeVersion.findFirst({ where: { siteId: site.id } }),
+      findLiveNotice(site.id, "en"), // placeholder text doesn't count
       prisma.consentPurpose.count({
         where: { siteId: site.id, isActive: true, involvesMinors: true },
       }),

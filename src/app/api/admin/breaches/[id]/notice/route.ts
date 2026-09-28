@@ -10,12 +10,13 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 // GET /api/admin/breaches/:id/notice?type=board|users — a ready-to-send breach
 // notification draft (§8(6)).
-export function GET(req: NextRequest, { params }: Ctx) {
+export function GET(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     const admin = requireAdmin(req);
     const site = await requireSite(req, admin.tenantId);
     const type = z

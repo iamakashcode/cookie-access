@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { env } from "@/server/env";
+import { cronUnauthorized } from "@/server/http";
 import { sweepRetention } from "@/server/lib/retention";
+import { sweepRateLimits } from "@/server/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,22 +11,16 @@ export const dynamic = "force-dynamic";
  * or from any scheduler:
  *   curl -H "x-cron-secret: $CRON_SECRET" .../api/cron/retention
  *
- * Auth (when CRON_SECRET is set): Vercel Cron's `Authorization: Bearer <secret>`,
- * or `x-cron-secret`, or `?secret=`.
+ * Auth: Vercel Cron's `Authorization: Bearer <CRON_SECRET>` header, or
+ * `x-cron-secret`. Refuses every call in production if CRON_SECRET is unset.
+ * Also clears expired rate-limit counters.
  */
 async function run(req: NextRequest) {
-  if (env.CRON_SECRET) {
-    const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    const provided =
-      bearer ||
-      req.headers.get("x-cron-secret") ||
-      new URL(req.url).searchParams.get("secret");
-    if (provided !== env.CRON_SECRET) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
+  const denied = cronUnauthorized(req);
+  if (denied) return denied;
   const result = await sweepRetention();
-  return NextResponse.json({ ok: true, ...result });
+  const rateLimitsCleared = await sweepRateLimits();
+  return NextResponse.json({ ok: true, ...result, rateLimitsCleared });
 }
 
 export const POST = run;

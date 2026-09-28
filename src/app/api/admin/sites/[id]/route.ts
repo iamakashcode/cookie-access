@@ -1,21 +1,28 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/server/prisma";
-import { handle, HttpError, requireAdmin } from "@/server/http";
+import { accountSuspended, handle, HttpError, requireAdmin } from "@/server/http";
 import { writeAuditLog } from "@/server/lib/audit";
 import { shapeSite } from "@/server/lib/siteShape";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 async function ownSite(tenantId: string, id: string) {
   const s = await prisma.site.findFirst({
     where: { id, tenantId },
-    select: { id: true, name: true, domain: true },
+    select: {
+      id: true,
+      name: true,
+      domain: true,
+      platformSuspended: true,
+      tenant: { select: { status: true } },
+    },
   });
   if (!s) throw new HttpError(404, "Domain not found");
+  if (s.tenant.status !== "active") throw accountSuspended();
   return s;
 }
 
@@ -26,11 +33,16 @@ const updateSchema = z.object({
 });
 
 // PATCH /api/admin/sites/:id — rename / set hostname / archive-reactivate.
-export function PATCH(req: NextRequest, { params }: Ctx) {
+export function PATCH(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     const admin = requireAdmin(req);
-    await ownSite(admin.tenantId, params.id);
+    const current = await ownSite(admin.tenantId, params.id);
     const body = updateSchema.parse(await req.json());
+    // Archive/reactivate is the owner's; a platform suspension is not.
+    if (body.status === "active" && current.platformSuspended) {
+      throw new HttpError(403, "This domain was suspended by the platform. Please contact support.");
+    }
     const site = await prisma.site.update({ where: { id: params.id }, data: body });
     await writeAuditLog({
       tenantId: admin.tenantId,
@@ -47,8 +59,9 @@ export function PATCH(req: NextRequest, { params }: Ctx) {
 // DELETE /api/admin/sites/:id        → archive (reversible; records kept)
 // DELETE /api/admin/sites/:id?purge=1 → permanently erase the domain + all its
 //                                       data, including its consent ledger.
-export function DELETE(req: NextRequest, { params }: Ctx) {
+export function DELETE(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     const admin = requireAdmin(req);
     const target = await ownSite(admin.tenantId, params.id);
     const count = await prisma.site.count({ where: { tenantId: admin.tenantId } });

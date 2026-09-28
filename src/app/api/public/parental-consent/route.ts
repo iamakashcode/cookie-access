@@ -7,6 +7,7 @@ import { upsertDataPrincipal } from "@/server/lib/principals";
 import { encrypt } from "@/server/lib/crypto";
 import { sendGuardianVerification } from "@/server/lib/notify";
 import { env } from "@/server/env";
+import { enforceLimit, idKey, ipKey } from "@/server/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +29,11 @@ export function POST(req: NextRequest) {
   return handlePublic(async () => {
     const body = schema.parse(await req.json());
     const site = await resolveSiteKey(body.tenantKey);
+    // Each call emails an arbitrary address, so cap per IP and per guardian
+    // address — this can't be used to flood someone's inbox.
+    const tooMany = "Too many verification emails requested. Please try again later.";
+    await enforceLimit(`parental:ip:${ipKey(req)}`, 10, 60 * 60, tooMany);
+    await enforceLimit(`parental:email:${idKey(body.guardianEmail)}`, 5, 24 * 60 * 60, tooMany);
 
     const minor = await upsertDataPrincipal(site.id, body.minorIdentifier, "anon");
     const token = crypto.randomBytes(24).toString("base64url");

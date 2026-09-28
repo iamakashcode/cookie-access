@@ -110,7 +110,9 @@ export default function RequestsPage() {
         `Erase all personal data for ${r.requester}?\n\n` +
           `Their identity (email/phone) is permanently removed from your consent ` +
           `records and they can no longer be identified. Their consent history is ` +
-          `kept as anonymous records. This cannot be undone.`,
+          `kept as anonymous records. This cannot be undone.\n\n` +
+          `Anyone can submit a request in someone else's name, so first confirm it ` +
+          `by writing to ${r.requester} and getting a reply from that address.`,
       )
     )
       return;

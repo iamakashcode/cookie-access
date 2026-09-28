@@ -18,6 +18,7 @@ export interface Site {
   domain: string | null;
   apiKey: string;
   status: "active" | "suspended";
+  platformSuspended: boolean; // suspended by the platform — owner can't reactivate
   planTier: string;
   verified: boolean;
   verifiedAt: string | null;
@@ -118,6 +119,7 @@ export interface NoticeVersion {
   bodyText: string;
   version: number;
   publishedAt: string;
+  placeholder?: boolean; // old auto-created template — never shown to visitors
 }
 
 export interface ConsentRecordRow {

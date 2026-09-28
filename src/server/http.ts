@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { prisma } from "./prisma";
@@ -109,10 +110,32 @@ export async function requireSite(
   if (!siteId) throw new HttpError(400, "No domain selected");
   const site = await prisma.site.findFirst({
     where: { id: siteId, tenantId },
-    select: { id: true, tenantId: true, apiKey: true, name: true, verified: true },
+    select: {
+      id: true,
+      tenantId: true,
+      apiKey: true,
+      name: true,
+      verified: true,
+      tenant: { select: { status: true } },
+    },
   });
   if (!site) throw new HttpError(404, "Domain not found");
-  return site;
+  if (site.tenant.status !== "active") throw accountSuspended();
+  const { tenant: _tenant, ...ctx } = site;
+  return ctx;
+}
+
+export function accountSuspended(): HttpError {
+  return new HttpError(403, "This account is suspended. Please contact support.");
+}
+
+/** Reject requests from an account the platform operator has suspended. */
+export async function requireActiveTenant(tenantId: string): Promise<void> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { status: true },
+  });
+  if (!tenant || tenant.status !== "active") throw accountSuspended();
 }
 
 /** Public site resolution from a widget key (query / body / header). */
@@ -143,10 +166,40 @@ export async function resolveSiteKey(
   };
 }
 
-/** Real client IP behind a proxy. */
+/**
+ * Real client IP behind a proxy. `x-real-ip` comes first: Vercel and the nginx
+ * config both set it from the actual connection, whereas the first
+ * `x-forwarded-for` entry can be supplied by the client.
+ */
 export function clientIp(req: NextRequest): string | null {
+  const real = req.headers.get("x-real-ip")?.trim();
+  if (real) return real;
   const xff = req.headers.get("x-forwarded-for");
-  return xff?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || null;
+  return xff?.split(",")[0]?.trim() || null;
+}
+
+/**
+ * Cron endpoint auth. Accepts Vercel Cron's `Authorization: Bearer <secret>`
+ * or an `x-cron-secret` header. Fails closed in production: without
+ * CRON_SECRET configured, nobody can trigger the sweep. In development it's
+ * open so the sweep can be run by hand.
+ */
+export function cronUnauthorized(req: NextRequest): NextResponse | null {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV !== "production") return null;
+    return NextResponse.json({ error: "CRON_SECRET is not configured" }, { status: 503 });
+  }
+  const provided =
+    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
+    req.headers.get("x-cron-secret") ||
+    "";
+  const a = Buffer.from(provided);
+  const b = Buffer.from(secret);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return null;
 }
 
 /**

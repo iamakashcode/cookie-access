@@ -6,10 +6,11 @@ import { writeAuditLog } from "@/server/lib/audit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
-export function DELETE(req: NextRequest, { params }: Ctx) {
+export function DELETE(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     const admin = requireAdmin(req);
     const site = await requireSite(req, admin.tenantId);
     const found = await prisma.processor.findFirst({

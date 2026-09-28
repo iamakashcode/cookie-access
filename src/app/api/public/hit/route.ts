@@ -1,7 +1,8 @@
 import { type NextRequest } from "next/server";
 import { prisma } from "@/server/prisma";
 import { corsJson, corsPreflight, handlePublic, HttpError } from "@/server/http";
-import { recordSession } from "@/server/lib/usage";
+import { getUsage, recordSession } from "@/server/lib/usage";
+import { ipKey, overLimit } from "@/server/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,10 @@ export const OPTIONS = corsPreflight;
  * Returns `{ over }`: when true the domain has used up its monthly session
  * allowance and the widget stops showing the consent banner (it keeps blocking
  * trackers, so the site never tracks without consent).
+ *
+ * The site key is public, so anyone could call this in a loop to exhaust a
+ * domain's allowance and hide its banner. Past a daily cap per IP, further
+ * pings are answered but not counted.
  */
 export function GET(req: NextRequest) {
   return handlePublic(async () => {
@@ -37,7 +42,8 @@ export function GET(req: NextRequest) {
       throw new HttpError(403, "Invalid or inactive site key");
     }
 
-    const usage = await recordSession(site);
+    const flooding = await overLimit(`hit:${site.id}:${ipKey(req)}`, 20, 24 * 60 * 60);
+    const usage = flooding ? await getUsage(site) : await recordSession(site);
     const res = corsJson({ over: usage.over });
     res.headers.set("Cache-Control", "no-store");
     return res;

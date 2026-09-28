@@ -3,6 +3,7 @@ import { prisma } from "@/server/prisma";
 import { handle, requireSuper } from "@/server/http";
 import { PLANS } from "@/server/lib/billing";
 import { currentSessionsBySite, limitForTier } from "@/server/lib/usage";
+import { platformSetup } from "@/server/lib/setupCheck";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -118,6 +119,7 @@ export function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
+      setup: await platformSetup(),
       totals: {
         accounts,
         sites,

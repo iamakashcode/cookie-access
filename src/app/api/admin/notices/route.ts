@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/server/prisma";
-import { handle, requireAdmin, requireSite } from "@/server/http";
+import { handle, HttpError, requireAdmin, requireSite } from "@/server/http";
 import { writeAuditLog } from "@/server/lib/audit";
+import { isPlaceholderNotice } from "@/server/lib/notices";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +18,9 @@ export function GET(req: NextRequest) {
       where: { siteId: site.id, ...(language ? { language } : {}) },
       orderBy: [{ language: "asc" }, { version: "desc" }],
     });
-    return NextResponse.json({ notices });
+    return NextResponse.json({
+      notices: notices.map((n) => ({ ...n, placeholder: isPlaceholderNotice(n.bodyText) })),
+    });
   });
 }
 
@@ -32,6 +35,12 @@ export function POST(req: NextRequest) {
     const admin = requireAdmin(req);
     const site = await requireSite(req, admin.tenantId);
     const { language, bodyText } = schema.parse(await req.json());
+    if (isPlaceholderNotice(bodyText)) {
+      throw new HttpError(
+        400,
+        'Remove the "This is a starter template" line and tailor the notice before publishing.',
+      );
+    }
 
     const last = await prisma.noticeVersion.findFirst({
       where: { siteId: site.id, language },

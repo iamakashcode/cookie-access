@@ -8,7 +8,7 @@ import { slugify } from "@/server/lib/slug";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 const schema = z.object({
   name: z.string().min(1).max(120),
@@ -29,8 +29,9 @@ async function ownPurpose(siteId: string, id: string) {
   if (!p) throw new HttpError(404, "Purpose not found");
 }
 
-export function PUT(req: NextRequest, { params }: Ctx) {
+export function PUT(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     const admin = requireAdmin(req);
     const site = await requireSite(req, admin.tenantId);
     await ownPurpose(site.id, params.id);
@@ -55,8 +56,9 @@ export function PUT(req: NextRequest, { params }: Ctx) {
 }
 
 // Soft-delete: deactivate so historical consent records keep a real purpose row.
-export function DELETE(req: NextRequest, { params }: Ctx) {
+export function DELETE(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     const admin = requireAdmin(req);
     const site = await requireSite(req, admin.tenantId);
     await ownPurpose(site.id, params.id);

@@ -60,6 +60,9 @@ keys), and a super-admin panel to manage every domain across accounts.
 
 ## Local setup
 
+Use a **separate development database** (e.g. a Neon branch) — never the
+production one. The demo account below has a public password.
+
 ```bash
 npm install                      # installs deps + generates the Prisma client
 cp .env.example .env             # then fill in DATABASE_URL + generate secrets
@@ -69,15 +72,20 @@ openssl rand -base64 48   # JWT_SECRET
 openssl rand -base64 32   # ENCRYPTION_KEY  (decodes to 32 bytes)
 openssl rand -base64 32   # BLIND_INDEX_KEY
 
-npm run db:setup                 # migrate + append-only triggers + seed demo data
+SEED_DEMO=true \
+SUPERADMIN_EMAIL=you@example.com SUPERADMIN_PASSWORD='at-least-12-chars' \
+  npm run db:setup               # migrate + append-only triggers + seed
 npm run dev                      # http://localhost:3000
 ```
 
-`db:setup` seeds a demo **account with two domains**. Credentials:
+Seeding is opt-in. `SEED_DEMO=true` creates a demo **account with two
+domains** (development databases only):
 
 - **Dashboard:** `owner@demo-store.test` / `demo-password-123`
-- **Super-admin:** `super@demo.test` / `super-password-123` (at `/super/login`)
 - **Widget keys:** Demo Store `dpdp_pk_demo_0123456789abcdef`, Demo Blog `dpdp_pk_demo_blog_000000000000`
+
+`SUPERADMIN_EMAIL` + `SUPERADMIN_PASSWORD` create (or reset the password of)
+the super-admin, who signs in at `/super/login`. There is no default.
 
 ### Try it
 - **http://localhost:3000** — landing → sign in, or register a new account at `/signup`
@@ -96,7 +104,7 @@ hits your server. To deploy it:
    Create keys in R2 → *Manage R2 API Tokens* (Object Read & Write, bucket `cookie-access`).
 2. `npm run deploy:widget` — builds `widget.js` with your API URL baked in and
    uploads it to R2.
-3. Set `NEXT_PUBLIC_WIDGET_URL` to your R2 public URL so the Install-page snippet
+3. Set `NEXT_PUBLIC_WIDGET_URL` to the widget on your R2 custom domain (not `r2.dev` — see DEPLOY.md) so the Install-page snippet
    points customers at it, and `npm run build`.
 
 ## Production deploy (single VPS + PM2 + Nginx + R2)

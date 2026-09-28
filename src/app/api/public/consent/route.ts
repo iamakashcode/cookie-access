@@ -13,6 +13,7 @@ import {
 import { latestNotice } from "@/server/lib/notices";
 import { upsertDataPrincipal } from "@/server/lib/principals";
 import { maskIp } from "@/server/lib/ip";
+import { enforceLimit, ipKey } from "@/server/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,9 @@ export function POST(req: NextRequest) {
   return handlePublic(async () => {
     const body = schema.parse(await req.json());
     const site = await resolveSiteKey(body.tenantKey);
+    // Flood protection only — generous, since many real visitors can share one
+    // mobile-carrier (CGNAT) IP.
+    await enforceLimit(`consent:${site.id}:${ipKey(req)}`, 300, 60);
 
     const notice = await latestNotice(site.id, body.language);
     if (!notice) {

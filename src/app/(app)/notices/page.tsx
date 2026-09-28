@@ -44,7 +44,8 @@ export default function NoticesPage() {
         `/api/admin/notices?language=${lang}`,
       );
       setHistory(notices);
-      setBody(notices[0]?.bodyText ?? TEMPLATE);
+      // Don't start from the old placeholder text — it's not publishable.
+      setBody(notices[0] && !notices[0].placeholder ? notices[0].bodyText : TEMPLATE);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -87,6 +88,7 @@ export default function NoticesPage() {
   }
 
   const current = history[0];
+  const isLive = !!current && !current.placeholder;
   const langLabel = LANGUAGES.find((l) => l.code === language)?.label ?? language;
 
   return (
@@ -126,6 +128,15 @@ export default function NoticesPage() {
         </div>
       )}
 
+      {!loading && !isLive && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <strong>No {langLabel} notice is live yet.</strong>{" "}
+          {language === "en"
+            ? "Your consent banner stays hidden — and trackers stay blocked — until you publish one."
+            : "Visitors will see the English notice until you publish one in this language."}
+        </div>
+      )}
+
       {loading ? (
         <p className="text-sm text-slate-400">Loading…</p>
       ) : (
@@ -136,7 +147,7 @@ export default function NoticesPage() {
               icon="▤"
               title={`Notice text (${langLabel})`}
               right={
-                current ? (
+                isLive ? (
                   <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700">
                     Current: v{current.version}
                   </span>
@@ -188,10 +199,16 @@ export default function NoticesPage() {
                     <div className="flex flex-1 items-center justify-between">
                       <span className="text-sm font-medium text-slate-700">
                         Version {n.version}
-                        {i === 0 && (
-                          <span className="ml-2 text-[11px] font-semibold text-sky-600">
-                            live
+                        {n.placeholder ? (
+                          <span className="ml-2 text-[11px] font-semibold text-amber-600">
+                            placeholder — not shown
                           </span>
+                        ) : (
+                          i === 0 && (
+                            <span className="ml-2 text-[11px] font-semibold text-sky-600">
+                              live
+                            </span>
+                          )
                         )}
                       </span>
                       <span className="text-xs text-slate-400">

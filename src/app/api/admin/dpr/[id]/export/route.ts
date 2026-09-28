@@ -8,7 +8,7 @@ import { writeAuditLog } from "@/server/lib/audit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 function safeDecrypt(enc: string): string {
   try {
@@ -21,8 +21,9 @@ function safeDecrypt(enc: string): string {
 // GET /api/admin/dpr/:id/export?format=pdf|json
 // The "access my data" package: everything this platform holds about the person
 // who made the request — their identifier, full consent history, and requests.
-export function GET(req: NextRequest, { params }: Ctx) {
+export function GET(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     const admin = requireAdmin(req);
     const site = await requireSite(req, admin.tenantId);
     const format = new URL(req.url).searchParams.get("format") === "json" ? "json" : "pdf";

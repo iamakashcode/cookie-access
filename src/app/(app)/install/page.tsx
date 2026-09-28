@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import type { Purpose } from "@/lib/types";
+import type { NoticeVersion, Purpose } from "@/lib/types";
 import { useDomains } from "@/components/DomainContext";
 import { widgetSnippet } from "@/lib/widget";
 import { Card, PageHero, SectionHeader } from "@/components/ui";
@@ -12,13 +12,19 @@ export default function InstallPage() {
   const apiKey = current.apiKey;
   const [copied, setCopied] = useState(false);
   const [purposes, setPurposes] = useState<Purpose[]>([]);
+  const [noticeLive, setNoticeLive] = useState<boolean | null>(null);
 
   useEffect(() => {
     api
       .get<{ purposes: Purpose[] }>("/api/admin/purposes")
       .then((r) => setPurposes(r.purposes.filter((p) => p.isActive)))
       .catch(() => {});
-  }, []);
+    // The banner only appears once an English notice is published.
+    api
+      .get<{ notices: NoticeVersion[] }>("/api/admin/notices?language=en")
+      .then((r) => setNoticeLive(!!r.notices[0] && !r.notices[0].placeholder))
+      .catch(() => {});
+  }, [current.id]);
 
   // A representative gate-able category (prefer analytics), for the example.
   const optional = purposes.filter((p) => !p.isEssential);
@@ -62,6 +68,16 @@ export default function InstallPage() {
         title="Install the widget"
         subtitle={`For the "${current.name}" domain. One line of code adds the consent banner and a permanent "Manage preferences" link to your website.`}
       />
+
+      {noticeLive === false && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <strong>Publish your privacy notice first.</strong> Until you do, the
+          widget shows no banner and keeps every tracker blocked.{" "}
+          <a href="/notices" className="font-semibold underline">
+            Write your notice →
+          </a>
+        </div>
+      )}
 
       {current.verified ? (
         <div className="mb-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -120,7 +136,14 @@ export default function InstallPage() {
         </p>
         <p className="mb-3 text-sm text-slate-500">
           Google Analytics, Google Tag Manager, Facebook Pixel, Hotjar and others
-          are recognised and held automatically — nothing to do.
+          are recognised and held automatically — whether the tag is written in
+          your HTML or added by another script — as long as the widget is the
+          first script in <code>&lt;head&gt;</code>.
+        </p>
+        <p className="mb-3 text-sm text-slate-500">
+          Not covered automatically: embedded iframes (YouTube, maps), tracking
+          images, and trackers not in the built-in list. Wrap those as shown
+          below, or gate them in your own code.
         </p>
         <p className="mb-2 text-sm font-medium text-slate-600">
           For anything else, wrap the script

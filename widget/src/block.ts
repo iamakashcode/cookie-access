@@ -1,9 +1,11 @@
 /**
  * Block-first tracker gating. Two layers:
- *  1. Auto-block — intercepts scripts created for known third-party trackers
- *     (Google Analytics, GTM, Facebook Pixel, …) and holds them until the
- *     matching consent category is granted. Best-effort; needs the widget to
- *     load first (in <head>).
+ *  1. Auto-block — holds scripts for known third-party trackers (Google
+ *     Analytics, GTM, Facebook Pixel, …) until the matching consent category is
+ *     granted. Covers scripts created from JS (createElement + src/setAttribute)
+ *     and <script src> tags written in the page HTML (via a MutationObserver
+ *     that neutralises them before they execute). Needs the widget to load
+ *     first, synchronously, in <head>.
  *  2. Tag-based (reliable) — <script type="text/plain" data-dpdp="analytics">
  *     never runs until we activate it on consent.
  *
@@ -39,8 +41,23 @@ const changeCbs: Array<() => void> = [];
 const origCreate =
   typeof document !== "undefined" ? document.createElement.bind(document) : null;
 
-// Auto-blocked tracker scripts, held until their category is consented.
+// Real setAttribute, so our own writes bypass the per-element src hook.
+const setAttr = Element.prototype.setAttribute;
+
+// Auto-blocked tracker scripts created from JS, held until consented.
 const stash: Array<{ cat: string; el: HTMLScriptElement; src: string }> = [];
+
+// Tracker <script> tags from the page HTML, neutralised by switching their type.
+const BLOCKED_TYPE = "javascript/blocked";
+const parsed: Array<{ cat: string; el: HTMLScriptElement; type: string | null }> = [];
+
+function absolute(url: string): string {
+  try {
+    return new URL(url, location.href).href;
+  } catch {
+    return url; // relative or malformed
+  }
+}
 
 /** Should a category be blocked right now? Deny-by-default until consent resolves. */
 function blockedNow(cat: string): boolean {
@@ -49,7 +66,10 @@ function blockedNow(cat: string): boolean {
   return managed.has(cat); // only auto-block categories this site actually manages
 }
 
-/** Patch document.createElement to neutralise known-tracker <script src>. */
+/**
+ * Start blocking: patch document.createElement for JS-created scripts, and
+ * watch the DOM for tracker <script src> tags coming from the page HTML.
+ */
 export function installBlocking(): void {
   if (!origCreate) return;
   try {
@@ -64,10 +84,20 @@ export function installBlocking(): void {
   } catch {
     /* environment froze document — skip auto-block */
   }
+  observeParsedScripts();
 }
 
 function hookScriptSrc(el: HTMLScriptElement): void {
   let real = "";
+  const assign = (v: string) => {
+    real = String(v);
+    const cat = trackerCategory(absolute(real));
+    if (cat && blockedNow(cat)) {
+      stash.push({ cat, el, src: real }); // held — no real src set yet
+    } else {
+      setAttr.call(el, "src", real);
+    }
+  };
   try {
     Object.defineProperty(el, "src", {
       configurable: true,
@@ -75,24 +105,49 @@ function hookScriptSrc(el: HTMLScriptElement): void {
       get() {
         return real;
       },
-      set(v: string) {
-        real = String(v);
-        let abs = real;
-        try {
-          abs = new URL(real, location.href).href;
-        } catch {
-          /* relative or malformed */
-        }
-        const cat = trackerCategory(abs);
-        if (cat && blockedNow(cat)) {
-          stash.push({ cat, el, src: real }); // held — no real src set yet
-        } else {
-          el.setAttribute("src", real);
-        }
-      },
+      set: assign,
     });
+    // setAttribute("src", …) would otherwise bypass the property hook.
+    el.setAttribute = function (name: string, value: string) {
+      if (String(name).toLowerCase() === "src") assign(value);
+      else setAttr.call(el, name, value);
+    };
   } catch {
     /* some scripts freeze their prototype — leave as-is */
+  }
+}
+
+/**
+ * Tracker tags in the page HTML never go through createElement, so watch the
+ * DOM instead. The observer runs before the parser executes a newly inserted
+ * script; switching its type to a non-JS one stops it from running (Firefox
+ * also needs `beforescriptexecute` cancelled). Works for tags that come after
+ * the widget's own <script> in the document.
+ */
+function observeParsedScripts(): void {
+  if (typeof MutationObserver === "undefined" || !document.documentElement) return;
+  try {
+    new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        m.addedNodes.forEach((node) => {
+          if (node.nodeType !== 1 || (node as Element).tagName !== "SCRIPT") return;
+          const el = node as HTMLScriptElement;
+          const src = el.getAttribute("src");
+          if (!src || el.getAttribute("type") === BLOCKED_TYPE) return;
+          const cat = trackerCategory(absolute(src));
+          if (!cat || !blockedNow(cat)) return;
+          parsed.push({ cat, el, type: el.getAttribute("type") });
+          setAttr.call(el, "type", BLOCKED_TYPE);
+          const cancel = (e: Event) => {
+            if (el.getAttribute("type") === BLOCKED_TYPE) e.preventDefault();
+            el.removeEventListener("beforescriptexecute", cancel);
+          };
+          el.addEventListener("beforescriptexecute", cancel);
+        });
+      }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  } catch {
+    /* no observer support — tag-based blocking still works */
   }
 }
 
@@ -119,8 +174,21 @@ function loadGrantedStash(): void {
   for (let i = stash.length - 1; i >= 0; i--) {
     if (granted.has(stash[i].cat)) {
       const item = stash.splice(i, 1)[0];
-      item.el.setAttribute("src", item.src);
+      setAttr.call(item.el, "src", item.src);
     }
+  }
+  // A neutralised HTML tag can't be re-run in place — swap in a fresh copy.
+  for (let i = parsed.length - 1; i >= 0; i--) {
+    if (!granted.has(parsed[i].cat)) continue;
+    const { el, type } = parsed.splice(i, 1)[0];
+    const s = origCreate!("script");
+    for (let j = 0; j < el.attributes.length; j++) {
+      const a = el.attributes[j];
+      if (a.name !== "type") setAttr.call(s, a.name, a.value);
+    }
+    if (type) setAttr.call(s, "type", type);
+    if (el.textContent) s.textContent = el.textContent;
+    el.parentNode?.replaceChild(s, el);
   }
 }
 

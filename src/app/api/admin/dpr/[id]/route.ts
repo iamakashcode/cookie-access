@@ -9,7 +9,7 @@ import { notifyRequesterResolved } from "@/server/lib/notify";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 function safeDecrypt(enc: string): string {
   try {
@@ -25,8 +25,9 @@ const schema = z.object({
 });
 
 // PATCH /api/admin/dpr/:id — advance status / resolve (notifies requester).
-export function PATCH(req: NextRequest, { params }: Ctx) {
+export function PATCH(req: NextRequest, ctx: Ctx) {
   return handle(async () => {
+    const params = await ctx.params;
     const admin = requireAdmin(req);
     const site = await requireSite(req, admin.tenantId);
     const body = schema.parse(await req.json());

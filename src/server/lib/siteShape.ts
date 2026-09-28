@@ -5,6 +5,7 @@ export function shapeSite(s: {
   domain: string | null;
   apiKey: string;
   status: string;
+  platformSuspended?: boolean;
   planTier: string;
   verified: boolean;
   verifiedAt: Date | null;
@@ -18,6 +19,7 @@ export function shapeSite(s: {
     domain: s.domain,
     apiKey: s.apiKey,
     status: s.status,
+    platformSuspended: s.platformSuspended ?? false,
     planTier: s.planTier,
     verified: s.verified,
     verifiedAt: s.verifiedAt,

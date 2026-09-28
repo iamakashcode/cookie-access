@@ -127,6 +127,9 @@ model Site {
   domain   String? // hostname, e.g. "shop.acme.com"
   apiKey   String       @unique // public widget key (not a secret)
   status   EntityStatus @default(active)
+  // Set when the platform operator (super-admin) suspends this domain. The
+  // owner's own archive/reactivate can't override it.
+  platformSuspended Boolean @default(false)
 
   // Ownership verification: flips true the first time the widget script loads
   // on a real website and calls the API (carrying that site's origin).
@@ -154,8 +157,11 @@ model Site {
   // Billing (per-domain). Null until this domain subscribes to a paid plan.
   planTier               PlanTier  @default(free)
   razorpayCustomerId     String?
-  razorpaySubscriptionId String?
-  subscriptionStatus     String? // created | active | halted | cancelled
+  razorpaySubscriptionId String? // the subscription the current plan is billed on
+  // A plan change awaiting payment. The current subscription keeps running
+  // until this one activates, so an abandoned checkout never loses the plan.
+  pendingSubscriptionId  String?
+  subscriptionStatus     String? // created | active | pending | halted | cancelled | completed
   planRenewsAt           DateTime?
 
   createdAt DateTime @default(now())
@@ -382,6 +388,18 @@ model SuperAdmin {
   createdAt    DateTime @default(now())
 
   @@map("super_admins")
+}
+
+/// Fixed-window request counters for rate limiting (login, signup, public
+/// widget endpoints). `key` includes the window, so each row is one window's
+/// count; rows past `expiresAt` are swept by the daily retention cron.
+model RateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("rate_limits")
 }
 
 model AuditLog {

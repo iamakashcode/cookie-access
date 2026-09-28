@@ -5,6 +5,7 @@ import { handle, HttpError } from "@/server/http";
 import { verifyPassword } from "@/server/lib/password";
 import { SUPER_COOKIE, signSuper } from "@/server/lib/jwt";
 import { sessionCookieOptions } from "@/server/lib/cookies";
+import { enforceLimit, idKey, ipKey } from "@/server/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,11 @@ const schema = z.object({
 export function POST(req: NextRequest) {
   return handle(async () => {
     const { email, password } = schema.parse(await req.json());
+
+    // Tighter than tenant login: this account controls every domain.
+    await enforceLimit(`super-login:ip:${ipKey(req)}`, 10, 15 * 60);
+    await enforceLimit(`super-login:email:${idKey(email)}`, 5, 15 * 60);
+
     const superAdmin = await prisma.superAdmin.findUnique({
       where: { email: email.toLowerCase() },
     });
