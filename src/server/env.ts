@@ -17,7 +17,7 @@ const schema = z.object({
     .transform((v) => v === "true"),
   COOKIE_SAMESITE: z.enum(["lax", "strict", "none"]).default("lax"),
 
-  APP_URL: z.string().default("http://localhost:3000"),
+  APP_URL: z.string().default("https://cookieaccess.com"),
   DPR_SLA_DAYS: z.coerce.number().default(30),
 
   SMTP_HOST: z.string().optional(),

@@ -12,10 +12,10 @@ const watch = process.argv.includes("--watch");
 // call. Override per environment with WIDGET_API_BASE. A tenant can still
 // override per-site with a data-api-base attribute on the <script> tag.
 // The API now lives in the Next app itself, so this is the app's origin.
-const API_BASE = process.env.WIDGET_API_BASE || "http://localhost:3000";
+const API_BASE = process.env.WIDGET_API_BASE || "https://cookieaccess.com";
 
 // Output straight into the Next.js public/ folder. Next serves it as a static
-// file in dev (http://localhost:3000/widget.js); in production you upload this
+// file in dev (https://cookieaccess.com/widget.js); in production you upload this
 // one file to a CDN — the API server never serves it.
 const outfile = resolve(__dirname, "../public/widget.js");
 
